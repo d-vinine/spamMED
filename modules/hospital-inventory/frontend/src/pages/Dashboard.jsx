@@ -1,90 +1,71 @@
-import { Package, AlertTriangle, Clock, Siren } from 'lucide-react';
-import StatsCard from '../components/Dashboard/StatsCard';
-import ActivityFeed from '../components/Dashboard/ActivityFeed';
+import { Card, Badge } from '../components/ui/components';
+import { Package, TrendingUp, AlertTriangle, AlertOctagon } from 'lucide-react';
 
-const Dashboard = () => {
-    const stats = [
-        { title: 'Total Stock Items', value: '1,234', icon: Package, trend: 'up', trendValue: '12%' },
-        { title: 'Low Stock Alerts', value: '12', icon: AlertTriangle, variant: 'warning', trend: 'down', trendValue: '4%' },
-        { title: 'Expiring Soon', value: '5', icon: Clock, variant: 'danger', trend: 'up', trendValue: '2' },
-        { title: 'Emergency Requests', value: '3', icon: Siren, variant: 'default', trend: 'up', trendValue: '1' },
-    ];
+const stats = [
+    { label: 'Total Items', value: '1,248', change: '+12%', icon: Package, color: 'text-brand-600', bg: 'bg-brand-50' },
+    { label: 'Value in Stock', value: '₹45,200', change: '+2.5%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { label: 'Low Stock', value: '12', change: 'Urgent', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
+    { label: 'Expired', value: '3', change: 'Action Req', icon: AlertOctagon, color: 'text-rose-600', bg: 'bg-rose-50' },
+];
 
-    const lowStockItems = [
-        { id: 1, name: 'Amoxicillin 500mg', stock: 45, min: 100, unit: 'Box' },
-        { id: 2, name: 'Surgical Gloves (M)', stock: 12, min: 50, unit: 'Box' },
-        { id: 3, name: 'Saline Solution', stock: 8, min: 30, unit: 'L' },
-        { id: 4, name: 'Adrenaline Injection', stock: 5, min: 20, unit: 'Amp' },
-    ];
-
+export default function Dashboard() {
     return (
-        <div style={{ paddingBottom: '2rem' }}>
-            <header style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--color-text-main)' }}>Dashboard Overview</h1>
-                <p style={{ color: 'var(--color-text-secondary)' }}>Welcome back, Dr. Smith. Here is what's happening today.</p>
-            </header>
-
+        <div className="space-y-6">
             {/* Stats Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                gap: '1.5rem',
-                marginBottom: '2rem'
-            }}>
-                {stats.map((stat, index) => (
-                    <StatsCard key={index} {...stat} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {stats.map((stat) => (
+                    <Card key={stat.label} className="hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">{stat.label}</p>
+                                <h3 className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</h3>
+                            </div>
+                            <div className={`p-2 rounded-lg ${stat.bg}`}>
+                                <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                            </div>
+                        </div>
+                        <div className="mt-4 flex items-center text-sm">
+                            <span className={stat.label === 'Low Stock' || stat.label === 'Expired' ? 'text-rose-600 font-medium' : 'text-emerald-600 font-medium'}>
+                                {stat.change}
+                            </span>
+                            <span className="text-slate-400 ml-2">from last month</span>
+                        </div>
+                    </Card>
                 ))}
             </div>
 
-            {/* Main Content Grid */}
-            <div style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr',
-                gap: '1.5rem',
-                alignItems: 'start'
-            }}>
-
-                {/* Low Stock Alerts Section */}
-                <div className="card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                        <h3 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Low Stock Alerts</h3>
-                        <button className="btn btn-outline" style={{ fontSize: '0.875rem', padding: '0.25rem 0.75rem' }}>View All</button>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Chart Area */}
+                <Card className="lg:col-span-2 min-h-[400px]">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-semibold text-slate-900">Inventory Trends</h3>
+                        <select className="text-sm border-slate-200 rounded-lg p-2 bg-slate-50">
+                            <option>Last 30 Days</option>
+                            <option>Last Quarter</option>
+                        </select>
                     </div>
+                    <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+                        Chart Placeholder (Integrate Recharts later)
+                    </div>
+                </Card>
 
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                <th style={{ padding: '0.75rem 0', color: 'var(--color-text-secondary)', fontWeight: 500, fontSize: '0.875rem' }}>Item Name</th>
-                                <th style={{ padding: '0.75rem 0', color: 'var(--color-text-secondary)', fontWeight: 500, fontSize: '0.875rem' }}>Current Stock</th>
-                                <th style={{ padding: '0.75rem 0', color: 'var(--color-text-secondary)', fontWeight: 500, fontSize: '0.875rem' }}>Status</th>
-                                <th style={{ padding: '0.75rem 0', color: 'var(--color-text-secondary)', fontWeight: 500, fontSize: '0.875rem' }}>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {lowStockItems.map((item) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem 0', fontWeight: 500 }}>{item.name}</td>
-                                    <td style={{ padding: '1rem 0' }}>
-                                        <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>{item.stock}</span>
-                                        <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}> / {item.min} {item.unit}</span>
-                                    </td>
-                                    <td style={{ padding: '1rem 0' }}>
-                                        <span className="badge badge-danger">Critical</span>
-                                    </td>
-                                    <td style={{ padding: '1rem 0' }}>
-                                        <button className="btn btn-primary" style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}>Restock</button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Activity Feed Sidebar */}
-                <ActivityFeed />
+                {/* Recent Activity */}
+                <Card className="h-full">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+                    <div className="space-y-4">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0">
+                                <div className="w-2 h-2 mt-2 rounded-full bg-blue-500 shrink-0" />
+                                <div>
+                                    <p className="text-sm text-slate-900 font-medium">Batch #452 Added</p>
+                                    <p className="text-xs text-slate-500">Paracetamol • 500 units</p>
+                                    <p className="text-xs text-slate-400 mt-1">2 hours ago</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
             </div>
         </div>
     );
-};
-
-export default Dashboard;
+}

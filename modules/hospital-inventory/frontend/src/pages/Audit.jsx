@@ -1,77 +1,37 @@
-import { Search, Filter, Download } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Card } from '../components/ui/components';
+import { User } from 'lucide-react';
 
-const AuditLog = () => {
-    const [logs, setLogs] = useState([]);
+const LOGS = [
+    { id: 1, action: 'Added Batch', details: 'Added 500 units of Paracetamol (Batch #452)', user: 'Dr. Sarah', time: '2 hours ago' },
+    { id: 2, action: 'Stock Alert', details: 'Low stock warning for Insulin Glargine', user: 'System', time: '4 hours ago' },
+    { id: 3, action: 'Request Approved', details: 'Approved 200 units of Oanzer for St. Marys', user: 'Admin', time: '5 hours ago' },
+];
 
-    useEffect(() => {
-        fetch('http://localhost:8080/api/logs')
-            .then(res => res.json())
-            .then(data => setLogs(data))
-            .catch(err => console.error("Failed to fetch logs:", err));
-    }, []);
-
+export default function AuditLog() {
     return (
-        <div>
-            <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                <div>
-                    <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--color-text-main)' }}>Audit Logs</h1>
-                    <p style={{ color: 'var(--color-text-secondary)' }}>Track all inventory movements and system alerts.</p>
-                </div>
-                <button className="btn btn-outline">
-                    <Download size={18} /> Export CSV
-                </button>
-            </header>
+        <div className="space-y-6">
+            <h2 className="text-lg font-semibold text-slate-900">System Audit Logs</h2>
 
-            <div className="card">
-                {/* Controls */}
-                <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-                        <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-secondary)' }} />
-                        <input
-                            type="text"
-                            placeholder="Search logs..."
-                            style={{
-                                width: '100%',
-                                padding: '0.625rem 1rem 0.625rem 2.5rem',
-                                borderRadius: 'var(--border-radius-md)',
-                                border: '1px solid #e2e8f0',
-                                outline: 'none'
-                            }}
-                        />
+            <div className="relative border-l border-slate-200 ml-3 space-y-8">
+                {LOGS.map((log) => (
+                    <div key={log.id} className="relative pl-8">
+                        <span className="absolute -left-[9px] top-1 h-[18px] w-[18px] rounded-full border-2 border-white bg-brand-500 ring-4 ring-slate-50"></span>
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                            <div>
+                                <p className="text-sm font-medium text-slate-900">{log.action}</p>
+                                <p className="text-slate-600 text-sm">{log.details}</p>
+                            </div>
+                            <span className="text-xs text-slate-400 whitespace-nowrap">{log.time}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center">
+                                <User size={12} className="text-slate-500" />
+                            </div>
+                            <span className="text-xs text-slate-500">{log.user}</span>
+                        </div>
                     </div>
-                    <button className="btn btn-outline">
-                        <Filter size={18} /> Filter
-                    </button>
-                </div>
-
-                {/* Table */}
-                <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                        <thead>
-                            <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                                <th style={{ padding: '0.75rem 1rem', color: 'var(--color-text-secondary)', width: '200px' }}>Timestamp</th>
-                                <th style={{ padding: '0.75rem 1rem', color: 'var(--color-text-secondary)', width: '200px' }}>Action</th>
-                                <th style={{ padding: '0.75rem 1rem', color: 'var(--color-text-secondary)' }}>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {logs.map((log) => (
-                                <tr key={log.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '1rem 1rem', fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-                                        {new Date(log.timestamp).toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '1rem 1rem', fontWeight: 500 }}>{log.action}</td>
-                                    <td style={{ padding: '1rem 1rem', color: 'var(--color-text-secondary)' }}>{log.details}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                    {logs.length === 0 && <p style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>No logs found.</p>}
-                </div>
+                ))}
             </div>
         </div>
     );
-};
-
-export default AuditLog;
+}

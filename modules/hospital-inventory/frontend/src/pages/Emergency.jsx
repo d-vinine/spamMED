@@ -1,93 +1,55 @@
-import { Siren, MessageCircle, Truck } from 'lucide-react';
+import { Card, Badge } from '../components/ui/components';
+import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
-const Emergency = () => {
-    const requests = [
-        { id: 1, hospital: 'City General Hospital', item: 'O-Negative Blood Units', quantity: '5 Units', urgency: 'Critical', time: '10 mins ago' },
-        { id: 2, hospital: 'St. Mary\'s Clinic', item: 'Anti-Venom (Snake)', quantity: '2 Vials', urgency: 'High', time: '1 hour ago' },
-    ];
+const REQUESTS = [
+    { id: 1, hospital: 'City General', item: 'Morphine Sulfate', quantity: 50, status: 'Pending', time: '10 mins ago' },
+    { id: 2, hospital: 'St. Marys', item: 'Oanzer sterile', quantity: 200, status: 'Approved', time: '2 hours ago' },
+    { id: 3, hospital: 'Northside Clinic', item: 'N95 Masks', quantity: 1000, status: 'Rejected', time: '1 day ago' },
+];
 
+export default function Emergency() {
     return (
-        <div>
-            <header style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '1.875rem', fontWeight: 'bold', color: 'var(--color-text-main)' }}>Emergency Exchange</h1>
-                <p style={{ color: 'var(--color-text-secondary)' }}>Request critical supplies from nearby hospitals network.</p>
-            </header>
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">Emergency Stock Requests</h2>
+                <button className="px-4 py-2 bg-rose-600 text-white text-sm font-medium rounded-lg hover:bg-rose-700 shadow-sm shadow-rose-200">
+                    Create Request
+                </button>
+            </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
-
-                {/* Community Feed */}
-                <div className="card">
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Siren color="var(--color-danger)" /> Active Community Requests
-                    </h3>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {requests.map(req => (
-                            <div key={req.id} style={{
-                                border: '1px solid #e2e8f0',
-                                borderRadius: 'var(--border-radius-md)',
-                                padding: '1.5rem',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                backgroundColor: 'var(--color-surface-hover)'
-                            }}>
-                                <div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-                                        <span className="badge badge-danger">{req.urgency}</span>
-                                        <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>{req.time}</span>
-                                    </div>
-                                    <h4 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>{req.item}</h4>
-                                    <p style={{ color: 'var(--color-text-secondary)' }}>Needed by <span style={{ fontWeight: 600, color: 'var(--color-text-main)' }}>{req.hospital}</span> • Qty: {req.quantity}</p>
-                                </div>
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <button className="btn btn-outline">Ignore</button>
-                                    <button className="btn btn-primary">
-                                        <Truck size={18} /> Offer Stock
-                                    </button>
+            <div className="grid gap-4">
+                {REQUESTS.map((req) => (
+                    <Card key={req.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 hover:border-brand-200 transition-colors">
+                        <div className="flex items-start gap-4">
+                            <div className={`p-2 rounded-full shrink-0 ${req.status === 'Pending' ? 'bg-amber-100 text-amber-600' :
+                                req.status === 'Approved' ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-500'
+                                }`}>
+                                {req.status === 'Pending' ? <Clock size={20} /> :
+                                    req.status === 'Approved' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-slate-900">{req.hospital}</h4>
+                                <p className="text-sm text-slate-600">Requested <span className="font-medium text-slate-900">{req.quantity}x {req.item}</span></p>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="text-xs text-slate-400">{req.time}</span>
                                 </div>
                             </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* New Request Form */}
-                <div className="card" style={{ height: 'fit-content' }}>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1.5rem' }}>Create New Request</h3>
-
-                    <form style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Item Needed</label>
-                            <input type="text" className="form-input" placeholder="e.g. Plasma" style={{
-                                width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid #e2e8f0'
-                            }} />
                         </div>
 
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Urgency Level</label>
-                            <select style={{ width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid #e2e8f0', backgroundColor: '#fff' }}>
-                                <option>Critical (Life Threatening)</option>
-                                <option>High (Urgent Procedure)</option>
-                                <option>Medium (Restock Required)</option>
-                            </select>
+                        <div className="flex items-center gap-3">
+                            {req.status === 'Pending' && (
+                                <>
+                                    <button className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">Decline</button>
+                                    <button className="px-3 py-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors shadow-sm">Approve</button>
+                                </>
+                            )}
+                            {req.status !== 'Pending' && (
+                                <Badge variant={req.status === 'Approved' ? 'success' : 'neutral'}>{req.status}</Badge>
+                            )}
                         </div>
-
-                        <div>
-                            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>Quantity</label>
-                            <input type="text" placeholder="e.g. 2 Units" style={{
-                                width: '100%', padding: '0.75rem', borderRadius: 'var(--border-radius-md)', border: '1px solid #e2e8f0'
-                            }} />
-                        </div>
-
-                        <button className="btn btn-primary" style={{ backgroundColor: 'var(--color-danger)', border: 'none', marginTop: '1rem' }}>
-                            <Siren size={18} /> Broadcast Request
-                        </button>
-                    </form>
-                </div>
-
+                    </Card>
+                ))}
             </div>
         </div>
     );
-};
-
-export default Emergency;
+}
