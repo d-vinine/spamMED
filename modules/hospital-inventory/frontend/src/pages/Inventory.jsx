@@ -22,6 +22,7 @@ export default function Inventory() {
         location: ''
     });
     const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+    const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
     // Add Batch State
     const [isAddBatchOpen, setIsAddBatchOpen] = useState(false);
@@ -50,6 +51,7 @@ export default function Inventory() {
         const handleClickOutside = () => {
             setRowMenuOpenId(null);
             setBatchMenuOpenId(null);
+            setIsFilterMenuOpen(false);
         };
         window.addEventListener('click', handleClickOutside);
         return () => window.removeEventListener('click', handleClickOutside);
@@ -396,10 +398,52 @@ export default function Inventory() {
                     />
                 </div>
                 <div className="flex gap-2 relative">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors text-sm font-medium">
-                        <Filter size={18} />
-                        Filter
-                    </button>
+                    <div className="relative">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setIsFilterMenuOpen(!isFilterMenuOpen);
+                            }}
+                            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors text-sm font-medium ${filterStatus !== 'ALL' ? 'bg-brand-50 border-brand-200 text-brand-700' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                        >
+                            <Filter size={18} />
+                            Filter
+                            {filterStatus !== 'ALL' && <span className="ml-1 px-1.5 py-0.5 bg-brand-200 rounded-full text-xs">{filterStatus}</span>}
+                        </button>
+
+                        {isFilterMenuOpen && (
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-200">
+                                <button
+                                    onClick={() => setFilterStatus('ALL')}
+                                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'ALL' ? 'bg-slate-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                    All Items
+                                    {filterStatus === 'ALL' && <CheckCircle size={14} />}
+                                </button>
+                                <button
+                                    onClick={() => setFilterStatus('ALERT')}
+                                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'ALERT' ? 'bg-slate-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                    Alerts Only
+                                    {filterStatus === 'ALERT' && <CheckCircle size={14} />}
+                                </button>
+                                <button
+                                    onClick={() => setFilterStatus('LOW')}
+                                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'LOW' ? 'bg-slate-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                    Low Stock
+                                    {filterStatus === 'LOW' && <CheckCircle size={14} />}
+                                </button>
+                                <button
+                                    onClick={() => setFilterStatus('EXPIRED')}
+                                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${filterStatus === 'EXPIRED' ? 'bg-slate-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-50'}`}
+                                >
+                                    Expired / Expiring
+                                    {filterStatus === 'EXPIRED' && <CheckCircle size={14} />}
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <div className="relative">
                         <button
                             onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
