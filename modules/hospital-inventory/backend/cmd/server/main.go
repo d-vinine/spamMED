@@ -52,6 +52,11 @@ func main() {
 		api.POST("/batches", inventoryHandler.AddBatch)
 		api.PUT("/batches/:id", inventoryHandler.UpdateBatch)
 		api.DELETE("/batches/:id", inventoryHandler.DeleteBatch)
+
+		// Audit Logs
+		api.GET("/audit-logs", inventoryHandler.GetTransactions)
+		// Dashboard Stats
+		api.GET("/dashboard/stats", inventoryHandler.GetDashboardStats)
 	}
 
 	fmt.Println("Starting Modular Server on :8080")

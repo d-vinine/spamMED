@@ -14,6 +14,8 @@ type InventoryService interface {
 	AddBatch(ctx context.Context, batch *domain.Batch, userID string) error
 	UpdateBatch(ctx context.Context, batch *domain.Batch, reason string, userID string) error
 	DeleteBatch(ctx context.Context, batchID uint, userID string) error
+	ListTransactions(ctx context.Context) ([]domain.InventoryTransaction, error)
+	GetDashboardStats(ctx context.Context) (*domain.DashboardStats, error)
 	// GetAlerts(ctx context.Context) ([]domain.Alert, error) // To be implemented
 }
 

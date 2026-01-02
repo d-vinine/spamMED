@@ -47,7 +47,7 @@ func (s *InventoryService) CreateItem(ctx context.Context, item *domain.Item, in
 			ItemID:         item.ID,
 			BatchID:        &initialBatch.ID,
 			QuantityChange: initialBatch.Quantity,
-			Reason:         "Initial Stock",
+			Reason:         "Item Added",
 			Timestamp:      time.Now(),
 		})
 	}
@@ -131,7 +131,17 @@ func (s *InventoryService) GetItem(ctx context.Context, id uint) (*domain.Item, 
 }
 
 func (s *InventoryService) UpdateItem(ctx context.Context, item *domain.Item) error {
-	return s.itemRepo.Update(ctx, item)
+	if err := s.itemRepo.Update(ctx, item); err != nil {
+		return err
+	}
+	// Log Transaction for Metadata Update
+	_ = s.txRepo.Create(ctx, &domain.InventoryTransaction{
+		ItemID:    item.ID,
+		Reason:    "Item Details Updated",
+		Timestamp: time.Now(),
+		Notes:     fmt.Sprintf("Item %s details updated", item.Name),
+	})
+	return nil
 }
 
 func (s *InventoryService) DeleteItem(ctx context.Context, id uint) error {
@@ -144,7 +154,18 @@ func (s *InventoryService) DeleteItem(ctx context.Context, id uint) error {
 	}
 
 	// 2. Delete the item (Soft Delete)
-	return s.itemRepo.Delete(ctx, id)
+	if err := s.itemRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// 3. Log Transaction
+	_ = s.txRepo.Create(ctx, &domain.InventoryTransaction{
+		ItemID:    id,
+		Reason:    "Item Deleted",
+		Timestamp: time.Now(),
+		Notes:     "Item and associated batches deleted",
+	})
+	return nil
 }
 
 func (s *InventoryService) ListItems(ctx context.Context) ([]domain.Item, error) {
@@ -184,4 +205,46 @@ func (s *InventoryService) AddBatch(ctx context.Context, batch *domain.Batch, us
 	}
 
 	return s.txRepo.Create(ctx, tx)
+}
+
+func (s *InventoryService) ListTransactions(ctx context.Context) ([]domain.InventoryTransaction, error) {
+	return s.txRepo.List(ctx)
+}
+
+func (s *InventoryService) GetDashboardStats(ctx context.Context) (*domain.DashboardStats, error) {
+	// 1. Get All Items
+	items, err := s.itemRepo.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.DashboardStats{
+		TotalItems:    int64(len(items)),
+		TotalValue:    0,
+		LowStockItems: 0,
+		ExpiredItems:  0,
+	}
+
+	now := time.Now()
+
+	for _, item := range items {
+		// Low Stock Check
+		if item.TotalQuantity < item.Threshold {
+			stats.LowStockItems++
+		}
+
+		for _, batch := range item.Batches {
+			// Total Value Calculation
+			if batch.MRP != nil {
+				stats.TotalValue += float64(batch.Quantity) * (*batch.MRP)
+			}
+
+			// Expired Check
+			if batch.ExpiryDate.Before(now) {
+				stats.ExpiredItems++
+			}
+		}
+	}
+
+	return stats, nil
 }

@@ -1,41 +1,116 @@
-import { Card, Badge } from '../components/ui/components';
-import { Package, TrendingUp, AlertTriangle, AlertOctagon } from 'lucide-react';
-
-const stats = [
-    { label: 'Total Items', value: '1,248', change: '+12%', icon: Package, color: 'text-brand-600', bg: 'bg-brand-50' },
-    { label: 'Value in Stock', value: '₹45,200', change: '+2.5%', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Low Stock', value: '12', change: 'Urgent', icon: AlertTriangle, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Expired', value: '3', change: 'Action Req', icon: AlertOctagon, color: 'text-rose-600', bg: 'bg-rose-50' },
-];
+import { useState, useEffect } from 'react';
+import { Card } from '../components/ui/components';
+import { Package, TrendingUp, AlertTriangle, AlertOctagon, Calendar, User, ArrowUpRight, ArrowDownLeft, FileText, Trash2, Edit } from 'lucide-react';
 
 export default function Dashboard() {
+    const [stats, setStats] = useState({
+        total_items: 0,
+        total_value: 0,
+        low_stock_items: 0,
+        expired_items: 0
+    });
+    const [recentActivity, setRecentActivity] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                // Fetch Stats
+                const statsRes = await fetch('http://localhost:8080/api/dashboard/stats');
+                if (statsRes.ok) {
+                    const statsData = await statsRes.json();
+                    setStats(statsData);
+                }
+
+                // Fetch Recent Activity (Audit logs, limit client side or server if params supported)
+                const logsRes = await fetch('http://localhost:8080/api/audit-logs');
+                if (logsRes.ok) {
+                    const logsData = await logsRes.json();
+                    // Take first 5, assuming sorted by date desc from backend
+                    setRecentActivity(logsData.slice(0, 5));
+                }
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
+
+    const formatCurrency = (value) => {
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0
+        }).format(value);
+    };
+
+    const statCards = [
+        {
+            label: 'Total Items',
+            value: stats.total_items,
+            icon: Package,
+            color: 'text-brand-600',
+            bg: 'bg-brand-50'
+        },
+        {
+            label: 'Total Value',
+            value: formatCurrency(stats.total_value),
+            icon: TrendingUp,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50'
+        },
+        {
+            label: 'Low Stock',
+            value: stats.low_stock_items,
+            icon: AlertTriangle,
+            color: 'text-amber-600',
+            bg: 'bg-amber-50',
+            highlight: stats.low_stock_items > 0
+        },
+        {
+            label: 'Expired',
+            value: stats.expired_items,
+            icon: AlertOctagon,
+            color: 'text-rose-600',
+            bg: 'bg-rose-50',
+            highlight: stats.expired_items > 0
+        },
+    ];
+
+    const getIcon = (log) => {
+        if (log.quantity_change > 0) return <ArrowUpRight size={16} className="text-emerald-600" />;
+        if (log.quantity_change < 0) return <ArrowDownLeft size={16} className="text-rose-600" />;
+        if (log.reason.includes("Deleted")) return <Trash2 size={16} className="text-slate-500" />;
+        if (log.reason && log.reason.includes("Updated")) return <Edit size={16} className="text-indigo-600" />;
+        return <FileText size={16} className="text-slate-500" />;
+    };
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat) => (
+                {statCards.map((stat) => (
                     <Card key={stat.label} className="hover:shadow-md transition-shadow">
                         <div className="flex items-start justify-between">
                             <div>
                                 <p className="text-sm font-medium text-slate-500">{stat.label}</p>
-                                <h3 className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</h3>
+                                <h3 className={`text-2xl font-bold mt-1 ${stat.highlight ? 'text-rose-600' : 'text-slate-900'}`}>
+                                    {loading ? '...' : stat.value}
+                                </h3>
                             </div>
                             <div className={`p-2 rounded-lg ${stat.bg}`}>
                                 <stat.icon className={`w-5 h-5 ${stat.color}`} />
                             </div>
-                        </div>
-                        <div className="mt-4 flex items-center text-sm">
-                            <span className={stat.label === 'Low Stock' || stat.label === 'Expired' ? 'text-rose-600 font-medium' : 'text-emerald-600 font-medium'}>
-                                {stat.change}
-                            </span>
-                            <span className="text-slate-400 ml-2">from last month</span>
                         </div>
                     </Card>
                 ))}
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Main Chart Area */}
+                {/* Main Chart Area - Placeholder for now */}
                 <Card className="lg:col-span-2 min-h-[400px]">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-lg font-semibold text-slate-900">Inventory Trends</h3>
@@ -44,8 +119,10 @@ export default function Dashboard() {
                             <option>Last Quarter</option>
                         </select>
                     </div>
-                    <div className="h-full flex items-center justify-center text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200">
-                        Chart Placeholder (Integrate Recharts later)
+                    <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 rounded-lg border border-dashed border-slate-200 p-8">
+                        <TrendingUp className="w-12 h-12 mb-3 text-slate-300" />
+                        <p className="font-medium">Chart Integration Pending</p>
+                        <p className="text-sm text-slate-400 mt-1">Need to install Recharts or Chart.js</p>
                     </div>
                 </Card>
 
@@ -53,16 +130,34 @@ export default function Dashboard() {
                 <Card className="h-full">
                     <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
                     <div className="space-y-4">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <div key={i} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0">
-                                <div className="w-2 h-2 mt-2 rounded-full bg-blue-500 shrink-0" />
-                                <div>
-                                    <p className="text-sm text-slate-900 font-medium">Batch #452 Added</p>
-                                    <p className="text-xs text-slate-500">Paracetamol • 500 units</p>
-                                    <p className="text-xs text-slate-400 mt-1">2 hours ago</p>
+                        {loading ? (
+                            <div className="text-center py-8 text-slate-400">Loading activity...</div>
+                        ) : recentActivity.length === 0 ? (
+                            <div className="text-center py-8 text-slate-400">No recent activity</div>
+                        ) : (
+                            recentActivity.map((log) => (
+                                <div key={log.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0">
+                                    <div className={`mt-1 p-1 rounded-full shrink-0 ${log.quantity_change > 0 ? 'bg-emerald-100' :
+                                            log.quantity_change < 0 ? 'bg-rose-100' : 'bg-slate-100'
+                                        }`}>
+                                        {getIcon(log)}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm text-slate-900 font-medium">
+                                            {log.item?.name || log.reason}
+                                        </p>
+                                        <p className="text-xs text-slate-500 line-clamp-1">
+                                            {log.notes || (log.quantity_change > 0 ? `Added ${log.quantity_change} units` : `Removed ${Math.abs(log.quantity_change)} units`)}
+                                        </p>
+                                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                            {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            <span>•</span>
+                                            <span>{log.performed_by || 'System'}</span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </Card>
             </div>

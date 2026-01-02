@@ -274,3 +274,23 @@ func (h *InventoryHandler) DeleteItem(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Item deleted"})
 }
+
+// GetTransactions godoc
+// @Summary Get all inventory transactions
+func (h *InventoryHandler) GetTransactions(c *gin.Context) {
+	transactions, err := h.inventoryService.ListTransactions(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, transactions)
+}
+
+func (h *InventoryHandler) GetDashboardStats(c *gin.Context) {
+	stats, err := h.inventoryService.GetDashboardStats(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
+}

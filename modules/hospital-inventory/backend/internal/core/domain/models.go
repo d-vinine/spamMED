@@ -53,11 +53,13 @@ type Batch struct {
 type InventoryTransaction struct {
 	ID             uint      `gorm:"primaryKey" json:"id"`
 	ItemID         uint      `json:"item_id" gorm:"index"`
-	BatchID        *uint     `json:"batch_id" gorm:"index"` // Nullable for general adjustments
-	QuantityChange int       `json:"quantity_change"`       // Positive (Add) or Negative (Remove)
-	Reason         string    `json:"reason"`                // ENUM: "Indent", "Purchase", "Expired", "Correction"
-	ReferenceID    string    `json:"reference_id"`          // ID of the Order/Indent/Invoice
-	PerformedBy    string    `json:"performed_by"`          // User ID/Name
+	Item           Item      `json:"item" gorm:"foreignKey:ItemID"`   // Association
+	BatchID        *uint     `json:"batch_id" gorm:"index"`           // Nullable
+	Batch          *Batch    `json:"batch" gorm:"foreignKey:BatchID"` // Association
+	QuantityChange int       `json:"quantity_change"`                 // Positive (Add) or Negative (Remove)
+	Reason         string    `json:"reason"`                          // ENUM: "Indent", "Purchase", "Expired", "Correction"
+	ReferenceID    string    `json:"reference_id"`                    // ID of the Order/Indent/Invoice
+	PerformedBy    string    `json:"performed_by"`                    // User ID/Name
 	Timestamp      time.Time `json:"timestamp" gorm:"autoCreateTime"`
 	Notes          string    `json:"notes"`
 }

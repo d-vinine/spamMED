@@ -24,6 +24,7 @@ type BatchRepository interface {
 type TransactionRepository interface {
 	Create(ctx context.Context, tx *domain.InventoryTransaction) error
 	GetByItemID(ctx context.Context, itemID uint) ([]domain.InventoryTransaction, error)
+	List(ctx context.Context) ([]domain.InventoryTransaction, error)
 }
 
 type RequestRepository interface {

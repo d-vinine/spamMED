@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react';
 import { Card, Badge } from '../components/ui/components';
-import { Search, Plus, Filter, MoreVertical, Loader2, AlertCircle, Package, ChevronDown, ChevronRight, Clock, AlertTriangle, AlertOctagon, CheckCircle } from 'lucide-react';
+import { Search, Plus, Filter, MoreVertical, Loader2, AlertCircle, Package, ChevronDown, ChevronRight, Clock, AlertTriangle, AlertOctagon, CheckCircle, History, FileText } from 'lucide-react';
 
 export default function Inventory() {
     const [items, setItems] = useState([]);
@@ -141,6 +141,8 @@ export default function Inventory() {
         threshold: 10,
         unit: 'Pack'
     });
+
+    // Audit Log State
 
     const handleUpdateItem = async (e) => {
         e.preventDefault();
@@ -711,6 +713,10 @@ export default function Inventory() {
                     </div>
                 </div>
             )}
+
+
+
+
 
             {/* Add Batch Modal */}
             {isAddBatchOpen && (
