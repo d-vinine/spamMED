@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import Layout from './components/Layout';
 import Billing from './pages/Billing';
 import Inventory from './pages/Inventory';
 
@@ -9,13 +9,12 @@ function App() {
 
   return (
     <Router>
-      <div className="dashboard">
-        <Sidebar />
-        <Routes>
+      <Routes>
+        <Route element={<Layout />}>
           <Route path="/" element={<Billing items={items} setItems={setItems} />} />
           <Route path="/inventory" element={<Inventory />} />
-        </Routes>
-      </div>
+        </Route>
+      </Routes>
     </Router>
   );
 }

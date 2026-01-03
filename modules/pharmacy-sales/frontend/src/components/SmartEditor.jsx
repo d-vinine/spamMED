@@ -1,4 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
 
 const SmartEditor = ({ items, setItems }) => {
     const [inputValue, setInputValue] = useState('');
@@ -92,7 +98,7 @@ const SmartEditor = ({ items, setItems }) => {
             }
 
             try {
-                const response = await fetch('http://localhost:8080/process-sale', {
+                const response = await fetch('http://localhost:8081/process-sale', {
                     method: 'POST',
                     body: text
                 });
@@ -133,16 +139,11 @@ const SmartEditor = ({ items, setItems }) => {
                 }
                 return;
             }
-            // ArrowDown doesn't need to do anything in main input
         }
 
         // DEFAULT INPUT BEHAVIOR (Add New)
         if (e.key === 'Backspace' && inputValue === '') {
             if (items.length > 0) {
-                // Originally selected last item, now maybe just start editing it?
-                // User said "arrows do what clicking does". 
-                // Let's keep Backspace as "Delete Last" or "Edit Last"? 
-                // Standard behavior is Delete Last. Let's keep Delete Last for Backspace.
                 deleteItem(items.length - 1);
             }
             return;
@@ -154,7 +155,7 @@ const SmartEditor = ({ items, setItems }) => {
             if (!text) return;
 
             try {
-                const response = await fetch('http://localhost:8080/process-sale', {
+                const response = await fetch('http://localhost:8081/process-sale', {
                     method: 'POST',
                     body: text
                 });
@@ -174,8 +175,13 @@ const SmartEditor = ({ items, setItems }) => {
     };
 
     return (
-        <div id="wrapper" ref={wrapperRef} onClick={handleWrapperClick}>
-            <div id="chip-list" ref={chipListRef}>
+        <div
+            id="wrapper"
+            ref={wrapperRef}
+            onClick={handleWrapperClick}
+            className="flex-1 bg-white border border-slate-200 rounded-xl overflow-y-auto flex flex-col shadow-sm relative"
+        >
+            <div id="chip-list" ref={chipListRef} className="w-full flex flex-col">
                 {items.map((item, index) => {
                     if (index === editingIndex) {
                         return (
@@ -183,7 +189,7 @@ const SmartEditor = ({ items, setItems }) => {
                                 key={index}
                                 autoFocus
                                 type="text"
-                                className="inline-editor"
+                                className="w-full bg-slate-50 border-b border-brand-200 text-slate-900 font-mono text-lg px-6 py-4 outline-none"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 onKeyDown={(e) => handleInlineKeyDown(e, index)}
@@ -202,49 +208,81 @@ const SmartEditor = ({ items, setItems }) => {
                     );
                 })}
             </div>
-            <input
-                type="text"
-                id="dynamic-input"
-                placeholder={items.length === 0 ? "Scan item or type (e.g. dolo 12)..." : "Add more..."}
-                autoComplete="off"
-                spellCheck="false"
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => {
-                    setInputValue(e.target.value);
-                    setFocusedIndex(-1);
-                }}
-                onKeyDown={handleMainKeyDown}
-            />
+
+            <div className="p-1 sticky bottom-0 bg-white">
+                <input
+                    type="text"
+                    id="dynamic-input"
+                    placeholder={items.length === 0 ? "Scan item or type (e.g. dolo 12)..." : "Add more..."}
+                    autoComplete="off"
+                    spellCheck="false"
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(e) => {
+                        setInputValue(e.target.value);
+                        setFocusedIndex(-1);
+                    }}
+                    onKeyDown={handleMainKeyDown}
+                    className="w-full bg-transparent text-slate-900 font-mono text-lg px-6 py-4 outline-none placeholder:text-slate-400"
+                />
+            </div>
         </div>
     );
 };
 
 const Chip = ({ item, isSelected, onClick }) => {
-    let statusClass = item.confidence > 0.8 ? 'status-high' : 'status-med';
+    let statusColor = "bg-yellow-100 border-yellow-200"; // Medium confidence default
+
+    if (item.confidence > 0.8) statusColor = "bg-green-100 border-green-200";
+
     let itemTotal = item.quantity * item.matched_item.price;
     let priceDisplay = `₹${itemTotal.toFixed(2)}`;
-    let chipClass = `app-chip ${isSelected ? 'selected' : ''}`;
 
     let isOOS = item.status === 'OutOfStock';
     let isUnknown = item.status === 'Unknown';
 
+    let chipBg = "bg-white hover:bg-slate-50";
+    let textColor = "text-slate-700";
+    let priceColor = "text-brand-600 font-bold";
+
+    if (isSelected) {
+        chipBg = "bg-brand-50";
+    }
+
     if (isOOS) {
-        statusClass = 'status-oos';
-        priceDisplay = 'OOS';
-        chipClass += ' chip-oos';
+        chipBg = "bg-red-50 hover:bg-red-100 border-red-100";
+        priceDisplay = "OOS";
+        priceColor = "text-red-500 font-bold";
     } else if (isUnknown) {
-        statusClass = 'status-unknown';
-        priceDisplay = 'Unknown';
-        chipClass += ' chip-unknown';
+        chipBg = "bg-slate-100 opacity-60";
+        priceDisplay = "Unknown";
+        priceColor = "text-slate-500";
     }
 
     return (
-        <div className={chipClass} onClick={(e) => { e.stopPropagation(); onClick(); }}>
-            <span className="chip-name">{item.matched_item.name}</span>
-            {(!isOOS && !isUnknown) && <span className="chip-qty">{item.quantity}</span>}
-            <span className="chip-price">{priceDisplay}</span>
-            <div className={`chip-status ${statusClass}`} title={`Confidence: ${(item.confidence * 100).toFixed(0)}%`}></div>
+        <div
+            className={cn(
+                "flex items-center px-6 py-4 border-b border-slate-100 gap-6 cursor-default transition-colors",
+                chipBg
+            )}
+            onClick={(e) => { e.stopPropagation(); onClick(); }}
+        >
+            <span className={cn("flex-1 font-medium", textColor)}>{item.matched_item.name}</span>
+
+            {(!isOOS && !isUnknown) && (
+                <span className="shrink-0 w-16 text-center bg-slate-100 rounded text-sm py-0.5 text-slate-600 font-mono font-medium">
+                    {item.quantity}
+                </span>
+            )}
+
+            <span className={cn("shrink-0 w-24 text-right font-mono", priceColor)}>
+                {priceDisplay}
+            </span>
+
+            <div
+                className={cn("w-2 h-2 rounded-full", statusColor)}
+                title={`Confidence: ${(item.confidence * 100).toFixed(0)}%`}
+            ></div>
         </div>
     );
 };

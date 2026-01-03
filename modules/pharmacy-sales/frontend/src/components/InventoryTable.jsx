@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Edit } from 'lucide-react';
+import { Search, MapPin, Edit, ChevronRight, Plus } from 'lucide-react';
 import ItemModal from './ItemModal';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-// Styles for badges since we might not have the full CSS framework
-const badgeStyle = (color, bg) => ({
-    padding: '0.25rem 0.5rem',
-    borderRadius: '9999px',
-    fontSize: '0.75rem',
-    fontWeight: 500,
-    color: color,
-    backgroundColor: bg,
-    display: 'inline-block'
-});
+export function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
 
 const InventoryTable = () => {
     const [filter, setFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
-    const [modalMode, setModalMode] = useState('CREATE'); // 'CREATE', 'EDIT', 'ADD_BATCH', 'EDIT_BATCH'
+    const [modalMode, setModalMode] = useState('CREATE');
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [expandedItems, setExpandedItems] = useState({});
@@ -27,13 +22,11 @@ const InventoryTable = () => {
 
     const fetchItems = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/items');
+            const response = await fetch('http://localhost:8081/api/items');
             if (response.ok) {
                 const data = await response.json();
-                // 2-Level Refactor: Keep items as parents, calculate stats
                 const itemsWithStats = data.map(item => {
                     const totalStock = item.total_quantity || 0;
-                    // Find nearest expiry
                     let nearestExpiry = null;
                     let batches = item.batches || [];
 
@@ -46,7 +39,6 @@ const InventoryTable = () => {
                         }
                     });
 
-                    // simple status logic
                     let status = 'good';
                     const threshold = item.threshold || 10;
                     if (totalStock <= 0) status = 'critical';
@@ -90,11 +82,10 @@ const InventoryTable = () => {
     };
 
     const handleSaveItem = async (data) => {
-        let url = 'http://localhost:8080/api/items';
+        let url = 'http://localhost:8081/api/items';
         let method = 'POST';
         let payload = {};
 
-        // Parse common batch fields
         const batchData = {
             quantity: parseInt(data.stock) || 0,
             batch_number: data.batch || '',
@@ -104,15 +95,13 @@ const InventoryTable = () => {
         };
 
         if (data.mode === 'ADD_BATCH') {
-            // Add Batch to Existing
-            url = 'http://localhost:8080/api/batches';
+            url = 'http://localhost:8081/api/batches';
             payload = {
                 item_id: data.item_id,
                 ...batchData
             };
         } else if (data.mode === 'EDIT') {
-            // Edit Item Metadata Only
-            url = `http://localhost:8080/api/items/${data.item_id}`;
+            url = `http://localhost:8081/api/items/${data.item_id}`;
             method = 'PUT';
             payload = {
                 name: data.name,
@@ -120,21 +109,19 @@ const InventoryTable = () => {
                 threshold: 10
             };
         } else if (data.mode === 'EDIT_BATCH') {
-            // Edit Batch Details
-            url = `http://localhost:8080/api/batches/${data.batch_id}`;
+            url = `http://localhost:8081/api/batches/${data.batch_id}`;
             method = 'PUT';
             payload = {
                 item_id: data.item_id,
                 ...batchData
             };
         } else {
-            // Create New Item + Batch
             payload = {
                 name: data.name,
                 description: data.category,
                 unit: 'Unit',
                 threshold: 10,
-                price: parseFloat(data.mrp) || 0, // Fallback price
+                price: parseFloat(data.mrp) || 0,
                 batches: [batchData]
             };
         }
@@ -158,11 +145,24 @@ const InventoryTable = () => {
         }
     };
 
-    const getStatusBadge = (status) => {
-        if (status === 'critical') return <span style={badgeStyle('#dc2626', '#fee2e2')}>Critical</span>;
-        if (status === 'low') return <span style={badgeStyle('#d97706', '#fef3c7')}>Low Stock</span>;
-        if (status === 'expiring') return <span style={badgeStyle('#d97706', '#fef3c7')}>Expiring</span>;
-        return <span style={badgeStyle('#16a34a', '#dcfce7')}>Good</span>;
+    const StatusBadge = ({ status }) => {
+        const styles = {
+            critical: "bg-red-100 text-red-700",
+            low: "bg-amber-100 text-amber-700",
+            expiring: "bg-orange-100 text-orange-700",
+            good: "bg-green-100 text-green-700"
+        };
+        const labels = {
+            critical: "Critical",
+            low: "Low Stock",
+            expiring: "Expiring",
+            good: "Good"
+        };
+        return (
+            <span className={cn("px-2 py-1 rounded-full text-xs font-medium", styles[status] || styles.good)}>
+                {labels[status]}
+            </span>
+        );
     };
 
     const filteredItems = inventoryItems.filter(item => {
@@ -202,137 +202,141 @@ const InventoryTable = () => {
     };
 
     return (
-        <div className="card" style={{ backgroundColor: 'white', borderRadius: '8px', padding: '1.5rem', boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)' }}>
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} />}
 
             {/* Header / Controls */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ position: 'relative', width: '300px' }}>
-                    <Search size={20} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+            <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
+                <div className="relative w-full sm:w-72">
+                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                     <input
                         type="text"
                         placeholder="Search items..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        style={{
-                            width: '100%',
-                            padding: '0.625rem 1rem 0.625rem 2.5rem',
-                            borderRadius: '0.375rem',
-                            border: '1px solid #e2e8f0',
-                            outline: 'none',
-                            fontSize: '0.875rem'
-                        }}
+                        className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all"
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        style={{
-                            padding: '0.625rem 1rem',
-                            borderRadius: '0.375rem',
-                            border: '1px solid #e2e8f0',
-                            backgroundColor: 'white',
-                            cursor: 'pointer'
-                        }}
+                        className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-600 cursor-pointer"
                     >
                         <option value="all">All Items</option>
                         <option value="low">Low Stock</option>
                         <option value="expiring">Expiring Soon</option>
                     </select>
-                    <button onClick={handleAddNew} style={{
-                        backgroundColor: '#2563eb',
-                        color: 'white',
-                        padding: '0.625rem 1rem',
-                        borderRadius: '0.375rem',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontWeight: 500
-                    }}>
-                        + Add Stock / Item
+                    <button
+                        onClick={handleAddNew}
+                        className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    >
+                        <Plus size={18} />
+                        Add Item
                     </button>
                 </div>
             </div>
 
             {/* Table */}
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '800px' }}>
-                    <thead>
-                        <tr style={{ borderBottom: '2px solid #e2e8f0', textAlign: 'left' }}>
-                            <th style={{ padding: '0.75rem 1rem', width: '40px' }}></th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Item</th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Category</th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Total Stock</th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Status</th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Next Expiry</th>
-                            <th style={{ padding: '0.75rem 1rem', color: '#64748b' }}>Actions</th>
+            <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-500 font-medium border-b border-slate-200">
+                        <tr>
+                            <th className="px-6 py-4 w-12"></th>
+                            <th className="px-6 py-4">Item Name</th>
+                            <th className="px-6 py-4">Category</th>
+                            <th className="px-6 py-4">Stock Level</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4">Next Expiry</th>
+                            <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
+                        {loading && (
+                            <tr><td colSpan="7" className="px-6 py-8 text-center text-slate-500">Loading inventory...</td></tr>
+                        )}
+                        {!loading && filteredItems.length === 0 && (
+                            <tr><td colSpan="7" className="px-6 py-8 text-center text-slate-500">No items found matching your criteria.</td></tr>
+                        )}
                         {filteredItems.map((item) => (
-                            <>
-                                <tr key={item.id} style={{ borderBottom: expandedItems[item.id] ? 'none' : '1px solid #f1f5f9', backgroundColor: expandedItems[item.id] ? '#f8fafc' : 'transparent' }}>
-                                    <td style={{ padding: '1rem 1rem', textAlign: 'center', cursor: 'pointer' }} onClick={() => toggleExpand(item.id)}>
-                                        <div style={{ transform: expandedItems[item.id] ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-                                            ▶
-                                        </div>
+                            <React.Fragment key={item.id}>
+                                <tr className={cn("hover:bg-slate-50/80 transition-colors group", expandedItems[item.id] && "bg-slate-50")}>
+                                    <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleExpand(item.id)}>
+                                        <ChevronRight
+                                            size={18}
+                                            className={cn("text-slate-400 transition-transform duration-200", expandedItems[item.id] && "rotate-90 text-brand-600")}
+                                        />
                                     </td>
-                                    <td style={{ padding: '1rem 1rem', fontWeight: 600 }}>
-                                        {item.name}
-                                        <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 400 }}>ID: #{item.id}</div>
+                                    <td className="px-6 py-4">
+                                        <div className="font-semibold text-slate-800">{item.name}</div>
+                                        <div className="text-xs text-slate-400 font-mono mt-0.5">ID: #{item.id}</div>
                                     </td>
-                                    <td style={{ padding: '1rem 1rem', color: '#64748b' }}>{item.category || item.description || '-'}</td>
-                                    <td style={{ padding: '1rem 1rem', fontWeight: 600 }}>{item.stock} <span style={{ fontSize: '0.8em', fontWeight: 400 }}>{item.unit}</span></td>
-                                    <td style={{ padding: '1rem 1rem' }}>{getStatusBadge(item.status)}</td>
-                                    <td style={{ padding: '1rem 1rem' }}>{item.expiry}</td>
-                                    <td style={{ padding: '1rem 1rem' }}>
-                                        <button style={{
-                                            padding: '0.25rem 0.5rem', fontSize: '0.8rem', border: '1px solid #cbd5e1', borderRadius: '0.25rem', background: 'white', cursor: 'pointer'
-                                        }} onClick={() => handleAddBatch(item)}>
-                                            + Add Batch
+                                    <td className="px-6 py-4 text-slate-600">{item.category || item.description || '-'}</td>
+                                    <td className="px-6 py-4 font-medium text-slate-700">
+                                        {item.stock} <span className="text-slate-400 text-xs font-normal ml-1">{item.unit}</span>
+                                    </td>
+                                    <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
+                                    <td className="px-6 py-4 text-slate-600 font-mono text-xs">{item.expiry}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <button
+                                            className="text-brand-600 hover:text-brand-800 text-xs font-medium bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-md transition-colors"
+                                            onClick={() => handleAddBatch(item)}
+                                        >
+                                            + Batch
                                         </button>
                                     </td>
                                 </tr>
                                 {/* Expanded Batches Row */}
                                 {expandedItems[item.id] && (
-                                    <tr style={{ borderBottom: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                                        <td colSpan="7" style={{ padding: '0 1rem 1rem 3rem' }}>
-                                            <div style={{ padding: '1rem', backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0', marginTop: '0.5rem' }}>
-                                                <h4 style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', color: '#64748b' }}>Batch Inventory</h4>
-                                                <table style={{ width: '100%', fontSize: '0.875rem' }}>
+                                    <tr className="bg-slate-50/50">
+                                        <td colSpan="7" className="px-6 pb-6 pt-2">
+                                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                                <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                    Batch Details
+                                                </div>
+                                                <table className="w-full text-sm">
                                                     <thead>
-                                                        <tr>
-                                                            <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b' }}>Batch #</th>
-                                                            <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b' }}>Location</th>
-                                                            <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b' }}>Qty</th>
-                                                            <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b' }}>MRP</th>
-                                                            <th style={{ textAlign: 'left', padding: '0.5rem', color: '#64748b' }}>Expiry</th>
-                                                            <th style={{ textAlign: 'right', padding: '0.5rem', color: '#64748b' }}>Actions</th>
+                                                        <tr className="text-slate-500 border-b border-slate-100">
+                                                            <th className="text-left px-4 py-3 font-medium">Batch #</th>
+                                                            <th className="text-left px-4 py-3 font-medium">Location</th>
+                                                            <th className="text-left px-4 py-3 font-medium">Qty</th>
+                                                            <th className="text-left px-4 py-3 font-medium">MRP</th>
+                                                            <th className="text-left px-4 py-3 font-medium">Expiry</th>
+                                                            <th className="text-right px-4 py-3 font-medium">Edit</th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
+                                                    <tbody className="divide-y divide-slate-50">
                                                         {item.batches && item.batches.length > 0 ? item.batches.map(b => (
-                                                            <tr key={b.id} style={{ borderTop: '1px solid #f1f5f9' }}>
-                                                                <td style={{ padding: '0.5rem', fontWeight: 500 }}>
-                                                                    {b.batch_number ? b.batch_number : <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>#{b.id}</span>}
+                                                            <tr key={b.id} className="hover:bg-slate-50">
+                                                                <td className="px-4 py-3 font-mono text-xs font-medium text-slate-700">
+                                                                    {b.batch_number ? b.batch_number : <span className="text-slate-400 italic">#{b.id}</span>}
                                                                 </td>
-                                                                <td style={{ padding: '0.5rem' }}>{b.location} <MapPin size={10} style={{ display: 'inline', marginLeft: 4 }} /></td>
-                                                                <td style={{ padding: '0.5rem' }}>{b.quantity}</td>
-                                                                <td style={{ padding: '0.5rem' }}>{b.mrp ? `₹${b.mrp.toFixed(2)}` : '-'}</td>
-                                                                <td style={{ padding: '0.5rem' }}>
-                                                                    {b.expiry_date ? b.expiry_date.split('T')[0] : '-'}
-                                                                    {new Date(b.expiry_date) < new Date() && <span style={{ color: 'red', marginLeft: '5px' }}>(Exp)</span>}
+                                                                <td className="px-4 py-3 text-slate-600 flex items-center gap-1">
+                                                                    <MapPin size={12} className="text-slate-400" /> {b.location || '-'}
                                                                 </td>
-                                                                <td style={{ padding: '0.5rem', textAlign: 'right' }}>
-                                                                    <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563eb' }} onClick={() => handleEditBatch(item, b)}>
+                                                                <td className="px-4 py-3 font-medium text-slate-700">{b.quantity}</td>
+                                                                <td className="px-4 py-3 text-slate-600 font-mono">{b.mrp ? `₹${b.mrp.toFixed(2)}` : '-'}</td>
+                                                                <td className="px-4 py-3">
+                                                                    <span className={cn(
+                                                                        "font-mono text-xs",
+                                                                        b.expiry_date && new Date(b.expiry_date) < new Date() ? "text-red-600 font-bold" : "text-slate-600"
+                                                                    )}>
+                                                                        {b.expiry_date ? b.expiry_date.split('T')[0] : '-'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="px-4 py-3 text-right">
+                                                                    <button
+                                                                        className="text-slate-400 hover:text-brand-600 p-1 hover:bg-brand-50 rounded transition-colors"
+                                                                        onClick={() => handleEditBatch(item, b)}
+                                                                    >
                                                                         <Edit size={14} />
                                                                     </button>
                                                                 </td>
                                                             </tr>
                                                         )) : (
                                                             <tr>
-                                                                <td colSpan="5" style={{ padding: '1rem', textAlign: 'center', color: '#94a3b8' }}>No batches found</td>
+                                                                <td colSpan="6" className="px-4 py-6 text-center text-slate-400 italic">No batches recorded for this item.</td>
                                                             </tr>
                                                         )}
                                                     </tbody>
@@ -341,7 +345,7 @@ const InventoryTable = () => {
                                         </td>
                                     </tr >
                                 )}
-                            </>
+                            </React.Fragment>
                         ))}
                     </tbody>
                 </table>
