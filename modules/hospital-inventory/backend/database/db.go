@@ -17,7 +17,7 @@ func Connect() {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = DB.AutoMigrate(&domain.Category{}, &domain.Item{}, &domain.Batch{}, &domain.InventoryTransaction{}, &domain.EmergencyRequest{})
+	err = DB.AutoMigrate(&domain.Category{}, &domain.Item{}, &domain.Batch{}, &domain.InventoryTransaction{}, &domain.EmergencyRequest{}, &domain.Indent{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}

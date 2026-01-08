@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Edit, ChevronRight, Plus } from 'lucide-react';
+import { Search, MapPin, Edit, ChevronRight, Plus, MoreVertical } from 'lucide-react';
 import ItemModal from './ItemModal';
+import RaiseIndentModal from './RaiseIndentModal';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -12,6 +13,8 @@ const InventoryTable = () => {
     const [filter, setFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [showIndentModal, setShowIndentModal] = useState(false);
+    const [indentItem, setIndentItem] = useState(null);
     const [modalMode, setModalMode] = useState('CREATE');
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedBatch, setSelectedBatch] = useState(null);
@@ -201,9 +204,15 @@ const InventoryTable = () => {
         setShowModal(true);
     };
 
+    const handleRaiseIndent = (item) => {
+        setIndentItem(item);
+        setShowIndentModal(true);
+    };
+
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} />}
+            {showIndentModal && <RaiseIndentModal onClose={() => setShowIndentModal(false)} onSuccess={() => alert('Indent Raised Successfully!')} initialItem={indentItem} />}
 
             {/* Header / Controls */}
             <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
@@ -278,13 +287,36 @@ const InventoryTable = () => {
                                     </td>
                                     <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
                                     <td className="px-6 py-4 text-slate-600 font-mono text-xs">{item.expiry}</td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                                         <button
-                                            className="text-brand-600 hover:text-brand-800 text-xs font-medium bg-brand-50 hover:bg-brand-100 px-3 py-1.5 rounded-md transition-colors"
-                                            onClick={() => handleAddBatch(item)}
+                                            className="text-slate-600 hover:text-slate-800 text-xs font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors border border-slate-200"
+                                            onClick={() => handleRaiseIndent(item)}
                                         >
-                                            + Batch
+                                            Indent
                                         </button>
+                                        <div className="relative inline-block text-left group/menu">
+                                            <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
+                                                <MoreVertical size={16} />
+                                            </button>
+
+                                            {/* Dropdown Menu */}
+                                            <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-100 z-10 hidden group-hover/menu:block hover:block">
+                                                <div className="py-1">
+                                                    <button
+                                                        onClick={() => handleAddBatch(item)}
+                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                    >
+                                                        Add Batch
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleEditItem(item)}
+                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                    >
+                                                        Edit Item
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                                 {/* Expanded Batches Row */}
@@ -325,13 +357,24 @@ const InventoryTable = () => {
                                                                         {b.expiry_date ? b.expiry_date.split('T')[0] : '-'}
                                                                     </span>
                                                                 </td>
-                                                                <td className="px-4 py-3 text-right">
-                                                                    <button
-                                                                        className="text-slate-400 hover:text-brand-600 p-1 hover:bg-brand-50 rounded transition-colors"
-                                                                        onClick={() => handleEditBatch(item, b)}
-                                                                    >
-                                                                        <Edit size={14} />
-                                                                    </button>
+                                                                <td className="px-4 py-3 text-right relative">
+                                                                    <div className="relative inline-block text-left group/batchmenu">
+                                                                        <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors">
+                                                                            <MoreVertical size={14} />
+                                                                        </button>
+
+                                                                        {/* Dropdown Menu for Batch */}
+                                                                        <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-100 z-10 hidden group-hover/batchmenu:block hover:block">
+                                                                            <div className="py-1">
+                                                                                <button
+                                                                                    onClick={() => handleEditBatch(item, b)}
+                                                                                    className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                                                >
+                                                                                    Edit Batch
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
                                                                 </td>
                                                             </tr>
                                                         )) : (

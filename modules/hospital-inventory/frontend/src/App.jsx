@@ -3,6 +3,7 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Inventory from './pages/Inventory';
 import AuditLog from './pages/Audit';
+import Indents from './pages/Indents';
 import Emergency from './pages/Emergency';
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="inventory" element={<Inventory />} />
           <Route path="audit" element={<AuditLog />} />
+          <Route path="indents" element={<Indents />} />
           <Route path="emergency" element={<Emergency />} />
         </Route>
       </Routes>

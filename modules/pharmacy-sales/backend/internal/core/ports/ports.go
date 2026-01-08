@@ -26,4 +26,5 @@ type InventoryService interface {
 	UpdateItem(id string, item domain.Item) error
 	AddBatch(batch domain.Batch) (int64, error)
 	UpdateBatch(id string, batch domain.Batch) error
+	ReceiveIndent(indentID int) error
 }

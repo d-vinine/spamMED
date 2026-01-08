@@ -27,6 +27,12 @@ func (r *GormItemRepository) GetByID(ctx context.Context, id uint) (*domain.Item
 	return &item, err
 }
 
+func (r *GormItemRepository) GetByName(ctx context.Context, name string) (*domain.Item, error) {
+	var item domain.Item
+	err := r.db.WithContext(ctx).Preload("Batches").Preload("Category").Where("name = ?", name).First(&item).Error
+	return &item, err
+}
+
 func (r *GormItemRepository) Update(ctx context.Context, item *domain.Item) error {
 	return r.db.WithContext(ctx).Omit("Batches", "Category").Save(item).Error
 }
@@ -69,6 +75,6 @@ func (r *GormBatchRepository) Delete(ctx context.Context, id uint) error {
 
 func (r *GormBatchRepository) GetByItemID(ctx context.Context, itemID uint) ([]domain.Batch, error) {
 	var batches []domain.Batch
-	err := r.db.WithContext(ctx).Where("item_id = ?", itemID).Find(&batches).Error
+	err := r.db.WithContext(ctx).Where("item_id = ?", itemID).Order("expiry_date asc").Find(&batches).Error
 	return batches, err
 }

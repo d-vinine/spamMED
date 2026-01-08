@@ -45,6 +45,7 @@ func main() {
 
 	// Sales
 	r.HandleFunc("/process-sale", h.HandleProcessSale).Methods("POST", "OPTIONS")
+	r.HandleFunc("/receive-indent", h.HandleReceiveIndent).Methods("POST", "OPTIONS")
 
 	// Serve Frontend (legacy route)
 	r.PathPrefix("/").Handler(http.FileServer(http.Dir("../frontend")))

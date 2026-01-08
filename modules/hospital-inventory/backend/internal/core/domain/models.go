@@ -73,3 +73,12 @@ type EmergencyRequest struct {
 	Status        string     `json:"status" gorm:"default:'Pending'"` // Pending, Approved, Rejected, Fulfilled
 	FulfilledDate *time.Time `json:"fulfilled_date"`
 }
+
+type Indent struct {
+	BaseModel
+	ItemName        string `json:"item_name"`
+	Quantity        int    `json:"quantity"`
+	Status          string `json:"status" gorm:"default:'PENDING'"` // PENDING, PROCESSING, DISPATCHED, FULFILLED, REJECTED
+	PharmacyID      string `json:"pharmacy_id"`                     // Identifier for the pharmacy
+	DispatchDetails string `json:"dispatch_details"`                // JSON or formatted string of suggested batches
+}

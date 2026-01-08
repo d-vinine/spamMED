@@ -21,12 +21,15 @@ func main() {
 	itemRepo := repositories.NewGormItemRepository(db)
 	batchRepo := repositories.NewGormBatchRepository(db)
 	txRepo := repositories.NewGormTransactionRepository(db)
+	indentRepo := repositories.NewGormIndentRepository(db)
 
 	// 3. Initialize Services
 	inventoryService := services.NewInventoryService(itemRepo, batchRepo, txRepo)
+	indentService := services.NewIndentService(indentRepo, itemRepo, batchRepo, txRepo)
 
 	// 4. Initialize Handlers
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+	indentHandler := handlers.NewIndentHandler(indentService)
 
 	// 5. Setup Router
 	r := gin.Default()
@@ -57,6 +60,12 @@ func main() {
 		api.GET("/audit-logs", inventoryHandler.GetTransactions)
 		// Dashboard Stats
 		api.GET("/dashboard/stats", inventoryHandler.GetDashboardStats)
+
+		// Indents
+		api.POST("/indents", indentHandler.CreateIndent)
+		api.GET("/indents", indentHandler.ListIndents)
+		api.GET("/indents/:id", indentHandler.GetIndent)
+		api.PUT("/indents/:id/status", indentHandler.ProcessIndent)
 	}
 
 	fmt.Println("Starting Modular Server on :8080")

@@ -142,6 +142,31 @@ func (h *HTTPHandler) HandleProcessSale(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(sales)
 }
 
+func (h *HTTPHandler) HandleReceiveIndent(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method == "OPTIONS" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+	if r.Method == "POST" {
+		var req struct {
+			IndentID int `json:"indent_id"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := h.inventoryService.ReceiveIndent(req.IndentID); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+	}
+}
+
 func (h *HTTPHandler) OptionsHandler(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	w.WriteHeader(http.StatusOK)

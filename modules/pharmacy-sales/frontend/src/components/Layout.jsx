@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Menu, X, Bell } from 'lucide-react';
+import { LayoutDashboard, Package, Menu, X, Bell, ShoppingCart } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -11,6 +11,7 @@ export function cn(...inputs) {
 const NAV_ITEMS = [
     { path: '/', label: 'Billing', icon: LayoutDashboard },
     { path: '/inventory', label: 'Inventory', icon: Package },
+    { path: '/indents', label: 'Indents', icon: ShoppingCart },
 ];
 
 export default function Layout() {

@@ -24,3 +24,10 @@ type RequestService interface {
 	ProcessRequest(ctx context.Context, reqID uint, status string, userID string) error
 	ListRequests(ctx context.Context) ([]domain.EmergencyRequest, error)
 }
+
+type IndentService interface {
+	CreateIndent(ctx context.Context, indent *domain.Indent) error
+	ListIndents(ctx context.Context) ([]domain.Indent, error)
+	GetIndent(ctx context.Context, id uint) (*domain.Indent, error)
+	ProcessIndent(ctx context.Context, indentID uint, status string) error
+}
