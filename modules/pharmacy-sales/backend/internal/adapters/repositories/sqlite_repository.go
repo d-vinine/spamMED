@@ -21,7 +21,13 @@ func NewSQLiteRepository(db *sql.DB) *SQLiteRepository {
 
 func (r *SQLiteRepository) GetAllItems() ([]domain.Item, error) {
 	// First fetch all items
-	rows, err := r.DB.Query(`SELECT id, name, coalesce(description,''), coalesce(threshold,10), coalesce(unit,'Unit'), price FROM items`)
+	// First fetch all items (ignore soft deleted) that have associated batches
+	rows, err := r.DB.Query(`
+		SELECT DISTINCT i.id, i.name, coalesce(i.description,''), coalesce(i.threshold,10), coalesce(i.unit,'Unit'), i.price 
+		FROM items i
+		JOIN pharmacy_batches b ON i.id = b.item_id
+		WHERE i.deleted_at IS NULL AND b.deleted_at IS NULL
+	`)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +51,8 @@ func (r *SQLiteRepository) GetAllItems() ([]domain.Item, error) {
 	}
 
 	// Fetch all batches
-	batchRows, err := r.DB.Query(`SELECT id, item_id, batch_number, expiry, quantity, coalesce(mrp,0), coalesce(location,'') FROM batches`)
+	// Fetch all batches (ignore soft deleted)
+	batchRows, err := r.DB.Query(`SELECT id, item_id, batch_number, expiry_date, quantity, coalesce(mrp,0), coalesce(location,'') FROM pharmacy_batches WHERE deleted_at IS NULL`)
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +81,28 @@ func (r *SQLiteRepository) GetAllItems() ([]domain.Item, error) {
 	return items, nil
 }
 
+func (r *SQLiteRepository) GetKnowledgeBase() ([]domain.Item, error) {
+	// Fetch all items from the master items table
+	rows, err := r.DB.Query(`SELECT id, name, coalesce(description,''), coalesce(threshold,10), coalesce(unit,'Unit'), price FROM items WHERE deleted_at IS NULL`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []domain.Item
+	for rows.Next() {
+		var i domain.Item
+		if err := rows.Scan(&i.ID, &i.Name, &i.Description, &i.Threshold, &i.Unit, &i.Price); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	return items, nil
+}
+
 func (r *SQLiteRepository) CreateItem(item domain.Item) (int64, error) {
-	res, err := r.DB.Exec("INSERT INTO items (name, description, threshold, unit, price) VALUES (?, ?, ?, ?, ?)",
-		item.Name, item.Description, item.Threshold, item.Unit, item.Price)
+	res, err := r.DB.Exec("INSERT INTO items (name, description, threshold, unit, price, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		item.Name, item.Description, item.Threshold, item.Unit, item.Price, time.Now(), time.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -89,9 +115,21 @@ func (r *SQLiteRepository) UpdateItem(id string, item domain.Item) error {
 	return err
 }
 
+func (r *SQLiteRepository) DeleteItem(id string) error {
+	// Soft delete all batches for this item in pharmacy
+	_, err := r.DB.Exec("UPDATE pharmacy_batches SET deleted_at=? WHERE item_id=?", time.Now(), id)
+	// We DO NOT delete from 'items' table as it is shared knowledge base
+	return err
+}
+
+func (r *SQLiteRepository) DeleteBatch(id string) error {
+	_, err := r.DB.Exec("UPDATE pharmacy_batches SET deleted_at=? WHERE id=?", time.Now(), id)
+	return err
+}
+
 func (r *SQLiteRepository) AddBatch(batch domain.Batch) (int64, error) {
-	res, err := r.DB.Exec("INSERT INTO batches (item_id, batch_number, expiry, quantity, mrp, location) VALUES (?, ?, ?, ?, ?, ?)",
-		batch.ItemID, batch.BatchNumber, batch.Expiry.Format(time.RFC3339), batch.Quantity, batch.MRP, batch.Location)
+	res, err := r.DB.Exec("INSERT INTO pharmacy_batches (item_id, batch_number, expiry_date, quantity, mrp, location, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+		batch.ItemID, batch.BatchNumber, batch.Expiry.Format(time.RFC3339), batch.Quantity, batch.MRP, batch.Location, time.Now(), time.Now())
 	if err != nil {
 		return 0, err
 	}
@@ -99,8 +137,8 @@ func (r *SQLiteRepository) AddBatch(batch domain.Batch) (int64, error) {
 }
 
 func (r *SQLiteRepository) UpdateBatch(id string, batch domain.Batch) error {
-	_, err := r.DB.Exec("UPDATE batches SET quantity=?, batch_number=?, location=?, mrp=?, expiry=? WHERE id=?",
-		batch.Quantity, batch.BatchNumber, batch.Location, batch.MRP, batch.Expiry.Format(time.RFC3339), id)
+	_, err := r.DB.Exec("UPDATE pharmacy_batches SET quantity=?, batch_number=?, location=?, mrp=?, expiry_date=?, updated_at=? WHERE id=?",
+		batch.Quantity, batch.BatchNumber, batch.Location, batch.MRP, batch.Expiry.Format(time.RFC3339), time.Now(), id)
 	return err
 }
 
@@ -131,7 +169,7 @@ func (r *SQLiteRepository) SeedData() {
 	}
 
 	for _, s := range seeds {
-		res, err := r.DB.Exec("INSERT INTO items (name, price) VALUES (?, ?)", s.Name, s.Price)
+		res, err := r.DB.Exec("INSERT INTO items (name, price, created_at, updated_at) VALUES (?, ?, ?, ?)", s.Name, s.Price, time.Now(), time.Now())
 		if err != nil {
 			log.Printf("Failed to insert item %s: %v", s.Name, err)
 			continue
@@ -144,8 +182,8 @@ func (r *SQLiteRepository) SeedData() {
 		}
 
 		batchNo := fmt.Sprintf("B-%d-%d", id, rand.Intn(999))
-		_, err = r.DB.Exec("INSERT INTO batches (item_id, batch_number, expiry, quantity, mrp, location) VALUES (?, ?, ?, ?, ?, ?)",
-			id, batchNo, parsedTime.Format(time.RFC3339), s.Quantity, s.Price+5, "Shelf A")
+		_, err = r.DB.Exec("INSERT INTO pharmacy_batches (item_id, batch_number, expiry_date, quantity, mrp, location, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+			id, batchNo, parsedTime.Format(time.RFC3339), s.Quantity, s.Price+5, "Shelf A", time.Now(), time.Now())
 	}
 	log.Println("Seeding complete.")
 }

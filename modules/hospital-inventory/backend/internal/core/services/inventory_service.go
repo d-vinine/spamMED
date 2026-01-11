@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hospital-inventory/internal/core/domain"
 	"hospital-inventory/internal/core/ports"
+	"strings"
 	"time"
 )
 
@@ -187,6 +188,10 @@ func (s *InventoryService) ListItems(ctx context.Context) ([]domain.Item, error)
 	return items, nil
 }
 
+func (s *InventoryService) GetKnowledgeBase(ctx context.Context) ([]domain.Item, error) {
+	return s.itemRepo.GetKnowledgeBase(ctx)
+}
+
 func (s *InventoryService) AddBatch(ctx context.Context, batch *domain.Batch, userID string) error {
 	// 1. Save Batch
 	if err := s.batchRepo.Create(ctx, batch); err != nil {
@@ -247,4 +252,27 @@ func (s *InventoryService) GetDashboardStats(ctx context.Context) (*domain.Dashb
 	}
 
 	return stats, nil
+}
+
+func (s *InventoryService) CheckItemExistence(ctx context.Context, name string) (bool, string, error) {
+	// 1. Exact Match
+	_, err := s.itemRepo.GetByName(ctx, name)
+	if err == nil {
+		return true, name, nil // Found exact
+	}
+
+	// 2. Fuzzy Match (Hyphens -> Space)
+	normalized := strings.ReplaceAll(name, "-", " ")
+	if normalized != name {
+		_, err := s.itemRepo.GetByName(ctx, normalized)
+		if err == nil {
+			return true, normalized, nil // Found similar
+		}
+	}
+
+	// 3. Case Insensitive Check (if repository doesn't handle it, we might need to list all or do DB query)
+	// For now, assuming GetByName is exact or case-sensitive depending on DB collation.
+	// If GetByName returns error, we assume not found.
+
+	return false, "", nil
 }

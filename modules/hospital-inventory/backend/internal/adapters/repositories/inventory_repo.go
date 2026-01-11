@@ -39,12 +39,26 @@ func (r *GormItemRepository) Update(ctx context.Context, item *domain.Item) erro
 
 func (r *GormItemRepository) List(ctx context.Context) ([]domain.Item, error) {
 	var items []domain.Item
-	err := r.db.WithContext(ctx).Preload("Batches").Preload("Category").Find(&items).Error
+	// Only list items clearly associated with hospital inventory (have batches)
+	err := r.db.WithContext(ctx).
+		Distinct("items.*").
+		Joins("INNER JOIN hospital_batches ON hospital_batches.item_id = items.id").
+		Preload("Batches").
+		Preload("Category").
+		Find(&items).Error
 	return items, err
 }
 
 func (r *GormItemRepository) Delete(ctx context.Context, id uint) error {
 	return r.db.WithContext(ctx).Delete(&domain.Item{}, id).Error
+}
+
+func (r *GormItemRepository) GetKnowledgeBase(ctx context.Context) ([]domain.Item, error) {
+	var items []domain.Item
+	// Fetch ALL items, ignoring batch associations (except for preloading category/batches if we want details, but usually just name/desc is enough)
+	// We still preload to keep struct consistent, but we DO NOT JOIN with hospital_batches here.
+	err := r.db.WithContext(ctx).Preload("Category").Find(&items).Error
+	return items, err
 }
 
 type GormBatchRepository struct {

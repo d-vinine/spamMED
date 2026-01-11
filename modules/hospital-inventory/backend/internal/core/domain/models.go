@@ -29,6 +29,7 @@ type Item struct {
 	Description  string   `json:"description"`
 	Threshold    int      `json:"threshold"`     // Low stock threshold
 	Unit         string   `json:"unit"`          // e.g., "Tablets", "Vials"
+	Price        float64  `json:"price"`         // Base price (shared schema)
 	RestockLevel int      `json:"restock_level"` // Suggested reorder quantity
 	Batches      []Batch  `json:"batches"`
 
@@ -64,6 +65,14 @@ type InventoryTransaction struct {
 	Notes          string    `json:"notes"`
 }
 
+func (Batch) TableName() string {
+	return "hospital_batches"
+}
+
+func (InventoryTransaction) TableName() string {
+	return "hospital_transactions"
+}
+
 type EmergencyRequest struct {
 	BaseModel
 	RequesterName string     `json:"requester_name"`
@@ -81,4 +90,13 @@ type Indent struct {
 	Status          string `json:"status" gorm:"default:'PENDING'"` // PENDING, PROCESSING, DISPATCHED, FULFILLED, REJECTED
 	PharmacyID      string `json:"pharmacy_id"`                     // Identifier for the pharmacy
 	DispatchDetails string `json:"dispatch_details"`                // JSON or formatted string of suggested batches
+}
+
+type SupplyOrder struct {
+	BaseModel
+	SupplierName string    `json:"supplier_name"`
+	Status       string    `json:"status" gorm:"default:'Pending'"` // Pending, Received, Cancelled
+	OrderDate    time.Time `json:"order_date"`
+	Items        string    `json:"items"` // JSON blob: [{itemId, itemName, quantity, unitCost, total}]
+	TotalCost    float64   `json:"total_cost"`
 }

@@ -25,23 +25,32 @@ func createTables(db *sql.DB) {
 	queryItems := `
 	CREATE TABLE IF NOT EXISTS items (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at DATETIME,
+		updated_at DATETIME,
+		deleted_at DATETIME,
 		name TEXT NOT NULL UNIQUE,
 		description TEXT,
 		threshold INTEGER DEFAULT 10,
 		unit TEXT DEFAULT 'Unit',
-		price REAL NOT NULL
+		price REAL NOT NULL,
+		category_id INTEGER,
+		restock_level INTEGER
 	);`
 
 	queryBatches := `
-	CREATE TABLE IF NOT EXISTS batches (
+	CREATE TABLE IF NOT EXISTS pharmacy_batches (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		created_at DATETIME,
+		updated_at DATETIME,
+		deleted_at DATETIME,
 		item_id INTEGER NOT NULL,
 		batch_number TEXT NOT NULL,
-		expiry DATETIME NOT NULL,
+		expiry_date DATETIME NOT NULL,
 		quantity INTEGER NOT NULL,
 		mrp REAL DEFAULT 0,
+		purchase_price REAL DEFAULT 0,
 		location TEXT,
-		FOREIGN KEY(item_id) REFERENCES items(id)
+		supplier_id INTEGER
 	);`
 
 	queryAliases := `
@@ -56,7 +65,7 @@ func createTables(db *sql.DB) {
 		log.Fatal("Failed to create items table:", err)
 	}
 	if _, err := db.Exec(queryBatches); err != nil {
-		log.Fatal("Failed to create batches table:", err)
+		log.Fatal("Failed to create pharmacy_batches table:", err)
 	}
 	if _, err := db.Exec(queryAliases); err != nil {
 		log.Fatal("Failed to create medicine_aliases table:", err)

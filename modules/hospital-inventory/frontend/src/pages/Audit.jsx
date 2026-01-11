@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card } from '../components/ui/components';
+import { Card } from '../components/UI/components.jsx';
 import { User, Loader2, AlertCircle, Calendar, Package, ArrowUpRight, ArrowDownLeft, Edit, Trash2, FileText } from 'lucide-react';
 
 export default function AuditLog() {
@@ -10,7 +10,7 @@ export default function AuditLog() {
     useEffect(() => {
         const fetchLogs = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/audit-logs');
+                const response = await fetch('/api/audit-logs');
                 if (!response.ok) throw new Error('Failed to fetch audit logs');
                 const data = await response.json();
                 setLogs(data);
@@ -78,7 +78,7 @@ export default function AuditLog() {
                         <div key={log.id} className="relative pl-10 group">
                             {/* Timeline Dot */}
                             <div className={`absolute -left-[9px] top-1.5 h-5 w-5 rounded-full border-4 border-white shadow-sm flex items-center justify-center ${log.quantity_change > 0 ? 'bg-emerald-500' :
-                                    log.quantity_change < 0 ? 'bg-rose-500' : 'bg-slate-400'
+                                log.quantity_change < 0 ? 'bg-rose-500' : 'bg-slate-400'
                                 }`}>
                             </div>
 

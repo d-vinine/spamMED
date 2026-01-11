@@ -1,0 +1,43 @@
+services:
+  hospital-backend:
+    build:
+      context: ./modules/hospital-inventory/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - spammed_data_v3:/app/data
+    restart: always
+
+  hospital-frontend:
+    build:
+      context: ./modules/hospital-inventory/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - hospital-backend
+    restart: always
+
+  pharmacy-backend:
+    build:
+      context: ./modules/pharmacy-sales/backend
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - spammed_data_v3:/app/data
+    restart: always
+
+  pharmacy-frontend:
+    build:
+      context: ./modules/pharmacy-sales/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:80"
+    depends_on:
+      - pharmacy-backend
+    restart: always
+
+volumes:
+  spammed_data_v3:

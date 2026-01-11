@@ -22,6 +22,7 @@ func main() {
 	batchRepo := repositories.NewGormBatchRepository(db)
 	txRepo := repositories.NewGormTransactionRepository(db)
 	indentRepo := repositories.NewGormIndentRepository(db)
+	orderRepo := repositories.NewSupplyOrderRepository(db)
 
 	// 3. Initialize Services
 	inventoryService := services.NewInventoryService(itemRepo, batchRepo, txRepo)
@@ -30,6 +31,7 @@ func main() {
 	// 4. Initialize Handlers
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 	indentHandler := handlers.NewIndentHandler(indentService)
+	orderHandler := handlers.NewSupplyOrderHandler(orderRepo)
 
 	// 5. Setup Router
 	r := gin.Default()
@@ -47,6 +49,8 @@ func main() {
 	api := r.Group("/api")
 	{
 		api.GET("/items", inventoryHandler.GetItems)
+		api.GET("/items/knowledge-base", inventoryHandler.GetKnowledgeBase)
+		api.GET("/items/check", inventoryHandler.CheckItem)
 		api.GET("/items/:id", inventoryHandler.GetItem)
 		api.POST("/items", inventoryHandler.CreateItem)
 		api.PUT("/items/:id", inventoryHandler.UpdateItem)
@@ -66,6 +70,11 @@ func main() {
 		api.GET("/indents", indentHandler.ListIndents)
 		api.GET("/indents/:id", indentHandler.GetIndent)
 		api.PUT("/indents/:id/status", indentHandler.ProcessIndent)
+
+		// Supply Orders
+		api.POST("/orders", orderHandler.CreateOrder)
+		api.GET("/orders", orderHandler.ListOrders)
+		api.PUT("/orders/:id/status", orderHandler.UpdateStatus)
 	}
 
 	fmt.Println("Starting Modular Server on :8080")

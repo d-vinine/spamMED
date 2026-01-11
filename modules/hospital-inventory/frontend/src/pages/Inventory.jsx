@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Card, Badge } from '../components/ui/components';
+import { Card, Badge } from '../components/UI/components.jsx';
 import { Search, Plus, Filter, MoreVertical, Loader2, AlertCircle, Package, ChevronDown, ChevronRight, Clock, AlertTriangle, AlertOctagon, CheckCircle, History, FileText } from 'lucide-react';
 
 export default function Inventory() {
@@ -40,6 +40,10 @@ export default function Inventory() {
     const [isEditBatchOpen, setIsEditBatchOpen] = useState(false);
     const [selectedBatch, setSelectedBatch] = useState(null);
 
+    // Autocomplete State
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
     const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
@@ -62,7 +66,7 @@ export default function Inventory() {
     const fetchItems = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:8080/api/items');
+            const response = await fetch('/api/items');
             if (!response.ok) {
                 throw new Error('Failed to fetch inventory');
             }
@@ -89,7 +93,7 @@ export default function Inventory() {
                 mrp: newBatch.mrp ? parseFloat(newBatch.mrp) : null
             };
 
-            const response = await fetch(`http://localhost:8080/api/batches/${selectedBatch.id}`, {
+            const response = await fetch(`/api/batches/${selectedBatch.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -119,7 +123,7 @@ export default function Inventory() {
         if (!window.confirm('Are you sure you want to delete this batch? This action cannot be undone.')) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/batches/${batchId}`, {
+            const response = await fetch(`/api/batches/${batchId}`, {
                 method: 'DELETE',
             });
 
@@ -155,7 +159,7 @@ export default function Inventory() {
                 unit: editItemData.unit
             };
 
-            const response = await fetch(`http://localhost:8080/api/items/${selectedItemToEdit.id}`, {
+            const response = await fetch(`/api/items/${selectedItemToEdit.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -181,7 +185,7 @@ export default function Inventory() {
         if (!window.confirm('Are you sure you want to delete this item? This will delete ALL associated batches and history. This action cannot be undone.')) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/items/${itemId}`, {
+            const response = await fetch(`/api/items/${itemId}`, {
                 method: 'DELETE',
             });
 
@@ -208,7 +212,7 @@ export default function Inventory() {
                 mrp: newBatch.mrp ? parseFloat(newBatch.mrp) : null
             };
 
-            const response = await fetch('http://localhost:8080/api/batches', {
+            const response = await fetch('/api/batches', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -245,7 +249,7 @@ export default function Inventory() {
                 mrp: parseFloat(newItem.mrp)
             };
 
-            const response = await fetch('http://localhost:8080/api/items', {
+            const response = await fetch('/api/items', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -480,7 +484,7 @@ export default function Inventory() {
 
             {isAddItemOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
                         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
                             <h3 className="font-semibold text-slate-900">Add New Item</h3>
                             <button onClick={() => setIsAddItemOpen(false)} className="text-slate-400 hover:text-slate-600">
@@ -489,16 +493,61 @@ export default function Inventory() {
                         </div>
                         <form onSubmit={handleAddItem} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Item Name <span className="text-rose-500">*</span></label>
+                                <div className="relative">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                                        Item Name <span className="text-xs text-slate-400">({items.length})</span> <span className="text-rose-500">*</span>
+                                    </label>
                                     <input
                                         required
                                         type="text"
                                         className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                                         value={newItem.name}
-                                        onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            setNewItem({ ...newItem, name: val });
+                                            if (val.length > 0) {
+                                                const matches = items.filter(i =>
+                                                    i.name.toLowerCase().includes(val.toLowerCase())
+                                                ).slice(0, 5);
+                                                console.log('Searching for:', val, 'Found:', matches.length);
+                                                setSuggestions(matches);
+                                                setShowSuggestions(matches.length > 0);
+                                            } else {
+                                                setShowSuggestions(false);
+                                            }
+                                        }}
+                                        autoComplete="off"
                                         placeholder="e.g. Paracetamol"
                                     />
+                                    {showSuggestions && (
+                                        <ul style={{
+                                            position: 'absolute', top: '100%', left: 0, right: 0,
+                                            background: 'white', border: '1px solid #e2e8f0', borderTop: 'none',
+                                            zIndex: 9999, listStyle: 'none', padding: 0, margin: 0,
+                                            maxHeight: '200px', overflowY: 'auto',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', borderRadius: '0 0 8px 8px'
+                                        }}>
+                                            {suggestions.map(s => (
+                                                <li
+                                                    key={s.id}
+                                                    onMouseDown={() => {
+                                                        setNewItem({
+                                                            ...newItem,
+                                                            name: s.name,
+                                                            description: s.description || newItem.description,
+                                                            unit: s.unit || newItem.unit,
+                                                            threshold: s.threshold || newItem.threshold
+                                                        });
+                                                        setShowSuggestions(false);
+                                                    }}
+                                                    className="px-4 py-2 hover:bg-slate-50 cursor-pointer text-sm text-slate-700 border-b border-slate-50 last:border-0"
+                                                >
+                                                    <div className="font-medium">{s.name}</div>
+                                                    <div className="text-xs text-slate-500">{s.description}</div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Unit <span className="text-rose-500">*</span></label>

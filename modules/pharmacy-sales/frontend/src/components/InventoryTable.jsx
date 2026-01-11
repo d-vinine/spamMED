@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Edit, ChevronRight, Plus, MoreVertical } from 'lucide-react';
+import { Search, MapPin, ChevronRight, Plus, MoreVertical } from 'lucide-react';
 import ItemModal from './ItemModal';
 import RaiseIndentModal from './RaiseIndentModal';
 import { clsx } from 'clsx';
@@ -18,7 +18,9 @@ const InventoryTable = () => {
     const [modalMode, setModalMode] = useState('CREATE');
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedBatch, setSelectedBatch] = useState(null);
+
     const [expandedItems, setExpandedItems] = useState({});
+    const [activeMenu, setActiveMenu] = useState(null); // 'item-{id}' or 'batch-{id}'
 
     const [inventoryItems, setInventoryItems] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -125,7 +127,13 @@ const InventoryTable = () => {
                 unit: 'Unit',
                 threshold: 10,
                 price: parseFloat(data.mrp) || 0,
-                batches: [batchData]
+                batches: [{
+                    quantity: parseInt(data.stock) || 0,
+                    batch_number: data.batch || `BATCH-${Date.now()}`, // Default if empty
+                    location: data.location || 'Shelf A',
+                    expiry_date: data.expiry ? new Date(data.expiry).toISOString() : new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString(),
+                    mrp: parseFloat(data.mrp) || 0
+                }]
             };
         }
 
@@ -147,6 +155,8 @@ const InventoryTable = () => {
             console.error("Failed to save:", err);
         }
     };
+
+
 
     const StatusBadge = ({ status }) => {
         const styles = {
@@ -209,9 +219,43 @@ const InventoryTable = () => {
         setShowIndentModal(true);
     };
 
+    const handleDeleteItem = async (item) => {
+        if (!confirm(`Are you sure you want to delete ${item.name}? This will remove all associated batches from the pharmacy inventory.`)) return;
+
+        try {
+            const res = await fetch(`http://localhost:8081/api/items/${item.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchItems();
+            } else {
+                console.error("Failed to delete item");
+                alert("Failed to delete item");
+            }
+        } catch (err) {
+            console.error("Error deleting item:", err);
+            alert("Error deleting item");
+        }
+    };
+
+    const handleDeleteBatch = async (batch) => {
+        if (!confirm(`Are you sure you want to delete batch ${batch.batch_number}?`)) return;
+
+        try {
+            const res = await fetch(`http://localhost:8081/api/batches/${batch.id}`, { method: 'DELETE' });
+            if (res.ok) {
+                fetchItems();
+            } else {
+                console.error("Failed to delete batch");
+                alert("Failed to delete batch");
+            }
+        } catch (err) {
+            console.error("Error deleting batch:", err);
+            alert("Error deleting batch");
+        }
+    };
+
     return (
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} />}
+            {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} inventoryItems={inventoryItems} />}
             {showIndentModal && <RaiseIndentModal onClose={() => setShowIndentModal(false)} onSuccess={() => alert('Indent Raised Successfully!')} initialItem={indentItem} />}
 
             {/* Header / Controls */}
@@ -268,128 +312,162 @@ const InventoryTable = () => {
                         {!loading && filteredItems.length === 0 && (
                             <tr><td colSpan="7" className="px-6 py-8 text-center text-slate-500">No items found matching your criteria.</td></tr>
                         )}
-                        {filteredItems.map((item) => (
-                            <React.Fragment key={item.id}>
-                                <tr className={cn("hover:bg-slate-50/80 transition-colors group", expandedItems[item.id] && "bg-slate-50")}>
-                                    <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleExpand(item.id)}>
-                                        <ChevronRight
-                                            size={18}
-                                            className={cn("text-slate-400 transition-transform duration-200", expandedItems[item.id] && "rotate-90 text-brand-600")}
-                                        />
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-semibold text-slate-800">{item.name}</div>
-                                        <div className="text-xs text-slate-400 font-mono mt-0.5">ID: #{item.id}</div>
-                                    </td>
-                                    <td className="px-6 py-4 text-slate-600">{item.category || item.description || '-'}</td>
-                                    <td className="px-6 py-4 font-medium text-slate-700">
-                                        {item.stock} <span className="text-slate-400 text-xs font-normal ml-1">{item.unit}</span>
-                                    </td>
-                                    <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
-                                    <td className="px-6 py-4 text-slate-600 font-mono text-xs">{item.expiry}</td>
-                                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                        <button
-                                            className="text-slate-600 hover:text-slate-800 text-xs font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors border border-slate-200"
-                                            onClick={() => handleRaiseIndent(item)}
-                                        >
-                                            Indent
-                                        </button>
-                                        <div className="relative inline-block text-left group/menu">
-                                            <button className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
-                                                <MoreVertical size={16} />
+                        {filteredItems.map((item, index) => {
+                            const isLastItems = index >= filteredItems.length - 3;
+                            return (
+                                <React.Fragment key={item.id}>
+                                    <tr className={cn("hover:bg-slate-50/80 transition-colors group", expandedItems[item.id] && "bg-slate-50")}>
+                                        <td className="px-6 py-4 text-center cursor-pointer" onClick={() => toggleExpand(item.id)}>
+                                            <ChevronRight
+                                                size={18}
+                                                className={cn("text-slate-400 transition-transform duration-200", expandedItems[item.id] && "rotate-90 text-brand-600")}
+                                            />
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-semibold text-slate-800">{item.name}</div>
+                                            <div className="text-xs text-slate-400 font-mono mt-0.5">ID: #{item.id}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-600">{item.category || item.description || '-'}</td>
+                                        <td className="px-6 py-4 font-medium text-slate-700">
+                                            {item.stock} <span className="text-slate-400 text-xs font-normal ml-1">{item.unit}</span>
+                                        </td>
+                                        <td className="px-6 py-4"><StatusBadge status={item.status} /></td>
+                                        <td className="px-6 py-4 text-slate-600 font-mono text-xs">{item.expiry}</td>
+                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                                            <button
+                                                className="text-slate-600 hover:text-slate-800 text-xs font-medium bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-md transition-colors border border-slate-200"
+                                                onClick={() => handleRaiseIndent(item)}
+                                            >
+                                                Indent
                                             </button>
+                                            <div className="relative inline-block text-left">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveMenu(activeMenu === `item-${item.id}` ? null : `item-${item.id}`);
+                                                    }}
+                                                    className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                                                >
+                                                    <MoreVertical size={16} />
+                                                </button>
 
-                                            {/* Dropdown Menu */}
-                                            <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-slate-100 z-10 hidden group-hover/menu:block hover:block">
-                                                <div className="py-1">
-                                                    <button
-                                                        onClick={() => handleAddBatch(item)}
-                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
-                                                    >
-                                                        Add Batch
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleEditItem(item)}
-                                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
-                                                    >
-                                                        Edit Item
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {/* Expanded Batches Row */}
-                                {expandedItems[item.id] && (
-                                    <tr className="bg-slate-50/50">
-                                        <td colSpan="7" className="px-6 pb-6 pt-2">
-                                            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                                                <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 uppercase tracking-wider">
-                                                    Batch Details
-                                                </div>
-                                                <table className="w-full text-sm">
-                                                    <thead>
-                                                        <tr className="text-slate-500 border-b border-slate-100">
-                                                            <th className="text-left px-4 py-3 font-medium">Batch #</th>
-                                                            <th className="text-left px-4 py-3 font-medium">Location</th>
-                                                            <th className="text-left px-4 py-3 font-medium">Qty</th>
-                                                            <th className="text-left px-4 py-3 font-medium">MRP</th>
-                                                            <th className="text-left px-4 py-3 font-medium">Expiry</th>
-                                                            <th className="text-right px-4 py-3 font-medium">Edit</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-50">
-                                                        {item.batches && item.batches.length > 0 ? item.batches.map(b => (
-                                                            <tr key={b.id} className="hover:bg-slate-50">
-                                                                <td className="px-4 py-3 font-mono text-xs font-medium text-slate-700">
-                                                                    {b.batch_number ? b.batch_number : <span className="text-slate-400 italic">#{b.id}</span>}
-                                                                </td>
-                                                                <td className="px-4 py-3 text-slate-600 flex items-center gap-1">
-                                                                    <MapPin size={12} className="text-slate-400" /> {b.location || '-'}
-                                                                </td>
-                                                                <td className="px-4 py-3 font-medium text-slate-700">{b.quantity}</td>
-                                                                <td className="px-4 py-3 text-slate-600 font-mono">{b.mrp ? `₹${b.mrp.toFixed(2)}` : '-'}</td>
-                                                                <td className="px-4 py-3">
-                                                                    <span className={cn(
-                                                                        "font-mono text-xs",
-                                                                        b.expiry_date && new Date(b.expiry_date) < new Date() ? "text-red-600 font-bold" : "text-slate-600"
-                                                                    )}>
-                                                                        {b.expiry_date ? b.expiry_date.split('T')[0] : '-'}
-                                                                    </span>
-                                                                </td>
-                                                                <td className="px-4 py-3 text-right relative">
-                                                                    <div className="relative inline-block text-left group/batchmenu">
-                                                                        <button className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors">
-                                                                            <MoreVertical size={14} />
-                                                                        </button>
-
-                                                                        {/* Dropdown Menu for Batch */}
-                                                                        <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-100 z-10 hidden group-hover/batchmenu:block hover:block">
-                                                                            <div className="py-1">
-                                                                                <button
-                                                                                    onClick={() => handleEditBatch(item, b)}
-                                                                                    className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-brand-600"
-                                                                                >
-                                                                                    Edit Batch
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        )) : (
-                                                            <tr>
-                                                                <td colSpan="6" className="px-4 py-6 text-center text-slate-400 italic">No batches recorded for this item.</td>
-                                                            </tr>
-                                                        )}
-                                                    </tbody>
-                                                </table>
+                                                {/* Dropdown Menu */}
+                                                {activeMenu === `item-${item.id}` && (
+                                                    <div className={cn(
+                                                        "absolute right-0 w-40 bg-white rounded-lg shadow-lg border border-slate-100 z-10 block",
+                                                        isLastItems ? "bottom-full mb-1" : "top-full mt-1"
+                                                    )}>
+                                                        <div className="py-1">
+                                                            <button
+                                                                onClick={() => { setActiveMenu(null); handleAddBatch(item); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                            >
+                                                                Add Batch
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setActiveMenu(null); handleEditItem(item); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                            >
+                                                                Edit Item
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setActiveMenu(null); handleDeleteItem(item); }}
+                                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 hover:text-red-700"
+                                                            >
+                                                                Delete Item
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
-                                    </tr >
-                                )}
-                            </React.Fragment>
-                        ))}
+                                    </tr>
+                                    {/* Expanded Batches Row */}
+                                    {expandedItems[item.id] && (
+                                        <tr className="bg-slate-50/50">
+                                            <td colSpan="7" className="px-6 pb-6 pt-2">
+                                                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                                                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                                                        Batch Details
+                                                    </div>
+                                                    <table className="w-full text-sm">
+                                                        <thead>
+                                                            <tr className="text-slate-500 border-b border-slate-100">
+                                                                <th className="text-left px-4 py-3 font-medium">Batch #</th>
+                                                                <th className="text-left px-4 py-3 font-medium">Location</th>
+                                                                <th className="text-left px-4 py-3 font-medium">Qty</th>
+                                                                <th className="text-left px-4 py-3 font-medium">MRP</th>
+                                                                <th className="text-left px-4 py-3 font-medium">Expiry</th>
+                                                                <th className="text-right px-4 py-3 font-medium">Edit</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-50">
+                                                            {item.batches && item.batches.length > 0 ? item.batches.map(b => (
+                                                                <tr key={b.id} className="hover:bg-slate-50">
+                                                                    <td className="px-4 py-3 font-mono text-xs font-medium text-slate-700">
+                                                                        {b.batch_number ? b.batch_number : <span className="text-slate-400 italic">#{b.id}</span>}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-slate-600 flex items-center gap-1">
+                                                                        <MapPin size={12} className="text-slate-400" /> {b.location || '-'}
+                                                                    </td>
+                                                                    <td className="px-4 py-3 font-medium text-slate-700">{b.quantity}</td>
+                                                                    <td className="px-4 py-3 text-slate-600 font-mono">{b.mrp ? `₹${b.mrp.toFixed(2)}` : '-'}</td>
+                                                                    <td className="px-4 py-3">
+                                                                        <span className={cn(
+                                                                            "font-mono text-xs",
+                                                                            b.expiry_date && new Date(b.expiry_date) < new Date() ? "text-red-600 font-bold" : "text-slate-600"
+                                                                        )}>
+                                                                            {b.expiry_date ? b.expiry_date.split('T')[0] : '-'}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td className="px-4 py-3 text-right relative">
+                                                                        <div className="relative inline-block text-left">
+                                                                            <button
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setActiveMenu(activeMenu === `batch-${b.id}` ? null : `batch-${b.id}`);
+                                                                                }}
+                                                                                className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                                                                            >
+                                                                                <MoreVertical size={14} />
+                                                                            </button>
+
+                                                                            {/* Dropdown Menu for Batch */}
+                                                                            {activeMenu === `batch-${b.id}` && (
+                                                                                <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-slate-100 z-10 block">
+                                                                                    <div className="py-1">
+                                                                                        <button
+                                                                                            onClick={() => { setActiveMenu(null); handleEditBatch(item, b); }}
+                                                                                            className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-brand-600"
+                                                                                        >
+                                                                                            Edit Batch
+                                                                                        </button>
+                                                                                        <button
+                                                                                            onClick={() => { setActiveMenu(null); handleDeleteBatch(b); }}
+                                                                                            className="w-full text-left px-4 py-2 text-xs text-red-600 hover:bg-slate-50 hover:text-red-700"
+                                                                                        >
+                                                                                            Delete Batch
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            )) : (
+                                                                <tr>
+                                                                    <td colSpan="6" className="px-4 py-6 text-center text-slate-400 italic">No batches recorded for this item.</td>
+                                                                </tr>
+                                                            )}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </td>
+                                        </tr >
+                                    )}
+                                </React.Fragment>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>

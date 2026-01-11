@@ -12,12 +12,12 @@ var DB *gorm.DB
 
 func Connect() {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("inventory.db"), &gorm.Config{})
+	DB, err = gorm.Open(sqlite.Open("/app/data/spammed.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
 	}
 
-	err = DB.AutoMigrate(&domain.Category{}, &domain.Item{}, &domain.Batch{}, &domain.InventoryTransaction{}, &domain.EmergencyRequest{}, &domain.Indent{})
+	err = DB.AutoMigrate(&domain.Category{}, &domain.Item{}, &domain.Batch{}, &domain.InventoryTransaction{}, &domain.EmergencyRequest{}, &domain.Indent{}, &domain.SupplyOrder{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}

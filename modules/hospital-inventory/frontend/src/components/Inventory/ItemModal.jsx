@@ -11,18 +11,20 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
         location: '',
         expiry: ''
     });
+    const [warning, setWarning] = useState(null); // { message: string, suggestion: string }
     const [knowledgeBase, setKnowledgeBase] = useState([]);
-    const [suggestions, setSuggestions] = useState([]);
-    const [showSuggestions, setShowSuggestions] = useState(false);
 
     useEffect(() => {
         if (mode === 'CREATE') {
-            fetch('http://localhost:8081/api/items/knowledge-base')
+            fetch('/api/items/knowledge-base')
                 .then(res => res.json())
                 .then(data => setKnowledgeBase(data || []))
-                .catch(err => console.error("Failed to fetch knowledge base:", err));
+                .catch(err => console.error("Failed to load knowledge base for autocomplete", err));
         }
     }, [mode]);
+
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     useEffect(() => {
         if (mode === 'EDIT' && item) {
@@ -57,10 +59,11 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
             [name]: value
         }));
         if (name === 'name') {
+            setWarning(null); // Clear warning on type
             // Autocomplete Logic
             if (value.length > 0 && mode === 'CREATE') {
-                const source = knowledgeBase.length > 0 ? knowledgeBase : inventoryItems;
-                const matches = source.filter(i =>
+                const searchPool = knowledgeBase.length > 0 ? knowledgeBase : inventoryItems || [];
+                const matches = searchPool.filter(i =>
                     i.name.toLowerCase().includes(value.toLowerCase())
                 ).slice(0, 5);
 
@@ -79,6 +82,41 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
             category: suggestion.category || suggestion.description || prev.category
         }));
         setShowSuggestions(false);
+        setWarning(null);
+    };
+
+    const checkDuplicate = async (e) => {
+        const name = e.target.value;
+        if (!name || mode !== 'CREATE') return;
+
+        try {
+            const res = await fetch(`/api/items/check?name=${encodeURIComponent(name)}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.exists) {
+                    if (data.suggestion && data.suggestion !== name) {
+                        setWarning({
+                            message: `Similar item already exists: "${data.suggestion}"`,
+                            suggestion: data.suggestion
+                        });
+                    } else {
+                        setWarning({
+                            message: `Item "${name}" already exists.`,
+                            suggestion: null
+                        });
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Check duplicate failed", err);
+        }
+    };
+
+    const applySuggestion = () => {
+        if (warning?.suggestion) {
+            setFormData(prev => ({ ...prev, name: warning.suggestion }));
+            setWarning(null);
+        }
     };
 
     const handleSubmit = (e) => {
@@ -117,6 +155,7 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
                                     name="name"
                                     value={formData.name}
                                     onChange={handleChange}
+                                    onBlur={checkDuplicate}
                                     required
                                     style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}
                                     autoComplete="off"
@@ -124,14 +163,15 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
                                 {showSuggestions && (
                                     <ul style={{
                                         position: 'absolute', top: '100%', left: 0, right: 0,
-                                        background: 'white', border: '1px solid #ddd', borderTop: 'none',
-                                        zIndex: 10, listStyle: 'none', padding: 0, margin: 0,
-                                        maxHeight: '150px', overflowY: 'auto',
-                                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)', borderRadius: '0 0 4px 4px'
+                                        background: 'white', border: '1px solid #e2e8f0', borderTop: 'none',
+                                        zIndex: 1000, listStyle: 'none', padding: 0, margin: 0,
+                                        maxHeight: '200px', overflowY: 'auto',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', borderRadius: '0 0 8px 8px'
                                     }}>
                                         {suggestions.map(s => (
                                             <li
                                                 key={s.id}
+                                                // Using onMouseDown to prevent blur from hiding suggestions before click registers
                                                 onMouseDown={() => handleSelectSuggestion(s)}
                                                 style={{
                                                     padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #eee',
@@ -148,6 +188,20 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
                                         ))}
                                     </ul>
                                 )}
+                                {warning && (
+                                    <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#b45309', backgroundColor: '#fffbeb', padding: '0.5rem', borderRadius: '4px', border: '1px solid #fcd34d' }}>
+                                        {warning.message}
+                                        {warning.suggestion && (
+                                            <button
+                                                type="button"
+                                                onClick={applySuggestion}
+                                                style={{ marginLeft: '0.5rem', textDecoration: 'underline', color: '#b45309', border: 'none', background: 'none', cursor: 'pointer', fontWeight: '600' }}
+                                            >
+                                                Use "{warning.suggestion}"?
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div>
                                 <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>Category / Description</label>
@@ -162,7 +216,7 @@ const ItemModal = ({ onClose, item, batch, mode, onSave, inventoryItems = [] }) 
                         </>
                     )}
 
-                    {(mode === 'ADD_BATCH' || mode === 'EDIT_BATCH' || mode === 'CREATE') && (
+                    {(mode === 'ADD_BATCH' || mode === 'EDIT_BATCH') && (
                         <>
                             <div style={{ display: 'flex', gap: '1rem' }}>
                                 <div style={{ flex: 1 }}>

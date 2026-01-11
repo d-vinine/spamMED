@@ -16,7 +16,7 @@ const InventoryTable = () => {
 
     const fetchItems = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/items');
+            const response = await fetch('/api/items');
             if (response.ok) {
                 const data = await response.json();
                 // 2-Level Refactor: Keep items as parents, calculate stats
@@ -80,7 +80,7 @@ const InventoryTable = () => {
     };
 
     const handleSaveItem = async (data) => {
-        let url = 'http://localhost:8080/api/items';
+        let url = '/api/items';
         let method = 'POST';
         let payload = {};
 
@@ -95,14 +95,14 @@ const InventoryTable = () => {
 
         if (data.mode === 'ADD_BATCH') {
             // Add Batch to Existing
-            url = 'http://localhost:8080/api/batches';
+            url = '/api/batches';
             payload = {
                 item_id: data.item_id,
                 ...batchData
             };
         } else if (data.mode === 'EDIT') {
             // Edit Item Metadata Only
-            url = `http://localhost:8080/api/items/${data.item_id}`;
+            url = `/api/items/${data.item_id}`;
             method = 'PUT';
             payload = {
                 name: data.name,
@@ -110,7 +110,7 @@ const InventoryTable = () => {
             };
         } else if (data.mode === 'EDIT_BATCH') {
             // Edit Batch Details
-            url = `http://localhost:8080/api/batches/${data.batch_id}`;
+            url = `/api/batches/${data.batch_id}`;
             method = 'PUT';
             // Send updated batch fields
             payload = {
@@ -193,7 +193,7 @@ const InventoryTable = () => {
 
     return (
         <div className="card">
-            {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} />}
+            {showModal && <ItemModal onClose={() => setShowModal(false)} item={selectedItem} batch={selectedBatch} mode={modalMode} onSave={handleSaveItem} inventoryItems={inventoryItems} />}
 
             {/* Header / Controls */}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>

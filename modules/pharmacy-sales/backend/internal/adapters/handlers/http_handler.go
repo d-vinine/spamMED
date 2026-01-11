@@ -71,6 +71,12 @@ func (h *HTTPHandler) HandleItemDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+	} else if r.Method == "DELETE" {
+		if err := h.inventoryService.DeleteItem(vars["id"]); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -99,6 +105,11 @@ func (h *HTTPHandler) HandleBatchDetail(w http.ResponseWriter, r *http.Request) 
 		var batch domain.Batch
 		json.NewDecoder(r.Body).Decode(&batch)
 		if err := h.inventoryService.UpdateBatch(vars["id"], batch); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else if r.Method == "DELETE" {
+		if err := h.inventoryService.DeleteBatch(vars["id"]); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -170,4 +181,16 @@ func (h *HTTPHandler) HandleReceiveIndent(w http.ResponseWriter, r *http.Request
 func (h *HTTPHandler) OptionsHandler(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *HTTPHandler) HandleKnowledgeBase(w http.ResponseWriter, r *http.Request) {
+	enableCors(&w)
+	if r.Method == "GET" {
+		items, err := h.inventoryService.GetKnowledgeBase()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		json.NewEncoder(w).Encode(items)
+	}
 }

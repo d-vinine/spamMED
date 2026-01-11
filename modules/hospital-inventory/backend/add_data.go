@@ -29,55 +29,64 @@ func main() {
 	baseURL := "http://localhost:8080/api"
 
 	// 1. Create Item
-	item := ItemPayload{
-		Name:        "Epinephrine (Demo)",
-		Description: "Emergency Injection - Low and Expiring",
-		Threshold:   20,
-		Unit:        "vials",
+	// 1. Create Items & Batches
+	items := []struct {
+		Item    ItemPayload
+		Batches []BatchPayload
+	}{
+		{
+			Item: ItemPayload{Name: "Dolo 650", Description: "Fever reducer", Threshold: 50, Unit: "strips"},
+			Batches: []BatchPayload{
+				{BatchNumber: "DOLO-001", Quantity: 100, MRP: 30.0, ExpiryDate: "2026-12-31T00:00:00Z", Location: "Shelf A"},
+				{BatchNumber: "DOLO-002", Quantity: 20, MRP: 30.0, ExpiryDate: "2024-03-01T00:00:00Z", Location: "Shelf B"}, // Expiring soon
+			},
+		},
+		{
+			Item: ItemPayload{Name: "Paracetamol 500mg", Description: "Pain reliever", Threshold: 30, Unit: "strips"},
+			Batches: []BatchPayload{
+				{BatchNumber: "PARA-100", Quantity: 10, MRP: 15.0, ExpiryDate: "2025-06-15T00:00:00Z", Location: "Shelf A"}, // Low stock
+			},
+		},
+		{
+			Item: ItemPayload{Name: "Amoxicillin 500mg", Description: "Antibiotic", Threshold: 25, Unit: "strips"},
+			Batches: []BatchPayload{
+				{BatchNumber: "AMOX-22", Quantity: 200, MRP: 55.0, ExpiryDate: "2027-01-20T00:00:00Z", Location: "Shelf C"},
+			},
+		},
 	}
 
-	itemBody, _ := json.Marshal(item)
-	resp, err := http.Post(baseURL+"/items", "application/json", bytes.NewBuffer(itemBody))
-	if err != nil {
-		fmt.Printf("Error creating item: %v\n", err)
-		return
-	}
-	defer resp.Body.Close()
+	for _, data := range items {
+		// Create Item
+		itemBody, _ := json.Marshal(data.Item)
+		resp, err := http.Post(baseURL+"/items", "application/json", bytes.NewBuffer(itemBody))
+		if err != nil {
+			fmt.Printf("Error creating item %s: %v\n", data.Item.Name, err)
+			continue
+		}
 
-	var createdItem struct {
-		ID uint `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&createdItem); err != nil {
-		fmt.Printf("Error decoding item response: %v\n", err)
-		return
-	}
-	fmt.Printf("Created Item ID: %d\n", createdItem.ID)
+		var createdItem struct {
+			ID uint `json:"id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&createdItem); err != nil {
+			fmt.Printf("Error decoding response for %s: %v\n", data.Item.Name, err)
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+		fmt.Printf("Created Item: %s (ID: %d)\n", data.Item.Name, createdItem.ID)
 
-	// 2. Add Batch (Low Stock + Expiring)
-	// Current simulated date is Jan 2026.
-	// We want it to be expiring soon (< 30 days), so let's say Jan 15, 2026.
-	// We want low stock (Total < Threshold 20). So Quantity = 5.
-
-	batch := BatchPayload{
-		ItemID:      createdItem.ID,
-		BatchNumber: "EPI-DEMO-001",
-		Quantity:    5,
-		MRP:         120.50,
-		ExpiryDate:  "2026-01-15T00:00:00Z", // 13 days from "now" (Jan 2)
-		Location:    "ER Cabinet 1",
+		// Create Batches
+		for _, batch := range data.Batches {
+			batch.ItemID = createdItem.ID
+			batchBody, _ := json.Marshal(batch)
+			respB, err := http.Post(baseURL+"/batches", "application/json", bytes.NewBuffer(batchBody))
+			if err != nil {
+				fmt.Printf("Error adding batch %s: %v\n", batch.BatchNumber, err)
+				continue
+			}
+			respB.Body.Close()
+			fmt.Printf("  -> Added Batch: %s\n", batch.BatchNumber)
+		}
 	}
 
-	batchBody, _ := json.Marshal(batch)
-	respBatch, err := http.Post(baseURL+"/batches", "application/json", bytes.NewBuffer(batchBody))
-	if err != nil {
-		fmt.Printf("Error adding batch: %v\n", err)
-		return
-	}
-	defer respBatch.Body.Close()
-
-	if respBatch.StatusCode == 200 || respBatch.StatusCode == 201 {
-		fmt.Println("Successfully added Low Stock + Expiring batch!")
-	} else {
-		fmt.Printf("Failed to add batch. Status: %s\n", respBatch.Status)
-	}
 }

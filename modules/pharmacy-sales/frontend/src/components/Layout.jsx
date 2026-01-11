@@ -26,14 +26,12 @@ export default function Layout() {
             <aside
                 className={cn(
                     "fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transition-all duration-300 ease-in-out flex flex-col",
-                    isSidebarOpen ? "w-64" : "w-16"
+                    isSidebarOpen ? "w-60" : "w-16"
                 )}
             >
                 <div className="h-16 flex items-center justify-center border-b border-slate-200">
                     {isSidebarOpen ? (
-                        <span className="text-xl font-bold bg-gradient-to-r from-brand-500 to-brand-700 bg-clip-text text-transparent">
-                            spamMED
-                        </span>
+                        <img src="/logo.png" alt="spamMED" className="h-10 w-auto object-contain" />
                     ) : (
                         <span className="text-xl font-bold text-brand-600">S</span>
                     )}
@@ -73,7 +71,7 @@ export default function Layout() {
             </aside>
 
             {/* Main Content */}
-            <div className={cn("flex-1 flex flex-col min-w-0 transition-all duration-300", isSidebarOpen ? "ml-64" : "ml-16")}>
+            <div className={cn("flex-1 flex flex-col min-w-0 transition-all duration-300", isSidebarOpen ? "ml-60" : "ml-16")}>
                 {/* Header */}
                 <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40 bg-white/80 backdrop-blur-md">
                     <h1 className="text-xl font-semibold text-slate-800">{activeTitle}</h1>

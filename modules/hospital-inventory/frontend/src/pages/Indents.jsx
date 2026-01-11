@@ -14,7 +14,7 @@ export default function Indents() {
 
     const fetchIndents = async () => {
         try {
-            const res = await fetch('http://localhost:8080/api/indents');
+            const res = await fetch('/api/indents');
             if (res.ok) {
                 const data = await res.json();
                 setIndents(data);
@@ -32,7 +32,7 @@ export default function Indents() {
 
     const handleStatus = async (id, status) => {
         try {
-            const res = await fetch(`http://localhost:8080/api/indents/${id}/status`, {
+            const res = await fetch(`/api/indents/${id}/status`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status })

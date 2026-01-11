@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// 1. Initialize Database
-	db := repositories.InitDB("./inventory.db")
+	db := repositories.InitDB("/app/data/spammed.db")
 	defer db.Close()
 
 	// 2. Initialize Repositories
@@ -37,11 +37,12 @@ func main() {
 
 	// Items
 	api.HandleFunc("/items", h.HandleItems).Methods("GET", "POST", "OPTIONS")
-	api.HandleFunc("/items/{id}", h.HandleItemDetail).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/items/knowledge-base", h.HandleKnowledgeBase).Methods("GET", "OPTIONS")
+	api.HandleFunc("/items/{id}", h.HandleItemDetail).Methods("PUT", "DELETE", "OPTIONS")
 
 	// Batches
 	api.HandleFunc("/batches", h.HandleBatches).Methods("POST", "OPTIONS")
-	api.HandleFunc("/batches/{id}", h.HandleBatchDetail).Methods("PUT", "OPTIONS")
+	api.HandleFunc("/batches/{id}", h.HandleBatchDetail).Methods("PUT", "DELETE", "OPTIONS")
 
 	// Sales
 	r.HandleFunc("/process-sale", h.HandleProcessSale).Methods("POST", "OPTIONS")

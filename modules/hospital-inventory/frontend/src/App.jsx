@@ -5,6 +5,7 @@ import Inventory from './pages/Inventory';
 import AuditLog from './pages/Audit';
 import Indents from './pages/Indents';
 import Emergency from './pages/Emergency';
+import Orders from './pages/Orders';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="inventory" element={<Inventory />} />
           <Route path="audit" element={<AuditLog />} />
           <Route path="indents" element={<Indents />} />
+          <Route path="orders" element={<Orders />} />
           <Route path="emergency" element={<Emergency />} />
         </Route>
       </Routes>

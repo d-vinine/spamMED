@@ -30,6 +30,17 @@ func (h *InventoryHandler) GetItems(c *gin.Context) {
 	c.JSON(http.StatusOK, items)
 }
 
+// GetKnowledgeBase godoc
+// @Summary Get all items for autocomplete
+func (h *InventoryHandler) GetKnowledgeBase(c *gin.Context) {
+	items, err := h.inventoryService.GetKnowledgeBase(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
 // CreateItem godoc
 // @Summary Create a new item
 type createItemRequest struct {
@@ -293,4 +304,24 @@ func (h *InventoryHandler) GetDashboardStats(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, stats)
+}
+
+func (h *InventoryHandler) CheckItem(c *gin.Context) {
+	name := c.Query("name")
+	if name == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Name query parameter required"})
+		return
+	}
+
+	exists, suggestion, err := h.inventoryService.CheckItemExistence(c.Request.Context(), name)
+	if err != nil {
+		// Log error but probably just return false or error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"exists":     exists,
+		"suggestion": suggestion,
+	})
 }

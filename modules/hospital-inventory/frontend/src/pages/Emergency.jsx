@@ -1,4 +1,4 @@
-import { Card, Badge } from '../components/ui/components';
+import { Card, Badge } from '../components/UI/components.jsx';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 const REQUESTS = [
