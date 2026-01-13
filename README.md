@@ -1,8 +1,8 @@
-# spamMED
+# SpamMED
 
-**spamMED** is a comprehensive hospital management system aimed at streamlining inventory tracking and pharmacy sales. It features a modular architecture designed to handle the distinct yet interconnected needs of hospital supply chains and retail pharmacy operations.
+**SpamMED** is a comprehensive hospital management system aimed at streamlining inventory tracking and pharmacy sales. It features a modular architecture designed to handle the distinct yet interconnected needs of hospital supply chains and retail pharmacy operations.
 
-## modules
+## Modules
 
 The project is divided into two primary modules:
 
@@ -28,8 +28,8 @@ Handles the retail side of the hospital's pharmacy.
 
 1.  **Clone the repository**:
     ```bash
-    git clone https://github.com/d-vinine/spamMED.git
-    cd spamMED
+    git clone https://github.com/d-vinine/SpamMED.git
+    cd SpamMED
     ```
 
 2.  **Start the application**:
